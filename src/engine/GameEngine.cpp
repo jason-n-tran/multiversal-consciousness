@@ -1,5 +1,6 @@
 #include "GameEngine.h"
 #include <iostream>
+#include <chrono>
 
 GameEngine::GameEngine() 
     : is_running_(false), is_initialized_(false) {
@@ -56,6 +57,16 @@ bool GameEngine::create_renderer(const EngineConfig& config) {
     return true;
 }
 
+bool GameEngine::initialize_ecs() {
+    entity_manager_ = std::make_unique<EntityManager>();
+    component_registry_ = std::make_unique<ComponentRegistry>();
+    system_manager_ = std::make_unique<SystemManager>(*entity_manager_, *component_registry_);
+    
+    system_manager_->initialize();
+    
+    return true;
+}
+
 bool GameEngine::initialize(const EngineConfig& config) {
     if (is_initialized_) {
         std::cerr << "Engine already initialized" << std::endl;
@@ -78,6 +89,11 @@ bool GameEngine::initialize(const EngineConfig& config) {
         SDL_Quit();
         return false;
     }
+
+    if (!initialize_ecs()) {
+        SDL_Quit();
+        return false;
+    }
     
     is_initialized_ = true;
     std::cout << "Game engine initialized successfully" << std::endl;
@@ -94,8 +110,14 @@ void GameEngine::run() {
     SDL_Event event;
     
     std::cout << "Starting main game loop..." << std::endl;
+
+    auto last_time = std::chrono::high_resolution_clock::now();
     
     while (is_running_) {
+        auto current_time = std::chrono::high_resolution_clock::now();
+        auto delta_duration = current_time - last_time;
+        float delta_time = std::chrono::duration<float>(delta_duration).count();
+        last_time = current_time;
         // Handle events
         while (SDL_PollEvent(&event)) {
             if (event.type == SDL_EVENT_QUIT) {
@@ -107,9 +129,12 @@ void GameEngine::run() {
                 }
             }
         }
+        system_manager_->update(delta_time);
+
         
         SDL_SetRenderDrawColor(renderer_.get(), 25, 25, 50, 255);
         SDL_RenderClear(renderer_.get());
+        system_manager_->render(renderer_.get());
         
         SDL_RenderPresent(renderer_.get());
         
@@ -125,7 +150,13 @@ void GameEngine::shutdown() {
     }
     
     is_running_ = false;
+    if (system_manager_) {
+        system_manager_->shutdown();
+    }
     
+    system_manager_.reset();
+    component_registry_.reset();
+    entity_manager_.reset();
     renderer_.reset();
     window_.reset();
     

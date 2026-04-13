@@ -34,6 +34,8 @@ set(SOURCES
     src/main.cpp
     src/engine/GameEngine.cpp
     src/engine/SDLDeleter.cpp
+    src/engine/EntityManager.cpp
+    src/engine/System.cpp
 )
 
 add_executable(${PROJECT_NAME} ${SOURCES})
