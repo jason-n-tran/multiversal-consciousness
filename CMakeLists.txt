@@ -36,6 +36,7 @@ set(SOURCES
     src/engine/SDLDeleter.cpp
     src/engine/EntityManager.cpp
     src/engine/System.cpp
+    src/engine/TileRenderer.cpp
 )
 
 add_executable(${PROJECT_NAME} ${SOURCES})
