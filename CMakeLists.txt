@@ -37,6 +37,8 @@ set(SOURCES
     src/engine/EntityManager.cpp
     src/engine/System.cpp
     src/engine/TileRenderer.cpp
+    src/engine/RealityManager.cpp
+    src/engine/RealitySystem.cpp
 )
 
 add_executable(${PROJECT_NAME} ${SOURCES})
