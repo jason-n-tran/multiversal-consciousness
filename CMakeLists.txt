@@ -42,6 +42,7 @@ set(SOURCES
     src/engine/PossessionSystem.cpp
     src/engine/CameraController.cpp
     src/engine/AgentRenderer.cpp
+    src/engine/QuantumSystem.cpp
 )
 
 add_executable(${PROJECT_NAME} ${SOURCES})

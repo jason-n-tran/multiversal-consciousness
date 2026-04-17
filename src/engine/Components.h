@@ -6,6 +6,8 @@
 #include <unordered_map>
 #include <cstdint>
 
+using EntityID = uint32_t;
+
 struct Transform {
     float x{0.0f}; 
     float y{0.0f}; 
