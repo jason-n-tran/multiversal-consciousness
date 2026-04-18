@@ -65,6 +65,7 @@ TileRenderer::TileRenderer(const EngineConfig& config)
     , render_scale_(config.render_scale)
     , show_grid_(false)
     , grid_color_{0.3f, 0.3f, 0.3f, 0.5f}
+    , show_reality_indicator_(true)
     , visible_tiles_rendered_(0) {
     
     tile_map_ = std::make_unique<TileMap>();
@@ -91,6 +92,11 @@ void TileRenderer::render(SDL_Renderer* renderer) {
     }
     
     visible_tiles_rendered_ = 0;
+
+    Reality current_reality = Reality::A;
+    if (reality_manager_) {
+        current_reality = reality_manager_->get_current_reality();
+    }
     
     float world_left, world_top, world_right, world_bottom;
     camera_.screen_to_world(0, 0, world_left, world_top);
@@ -123,23 +129,27 @@ void TileRenderer::render(SDL_Renderer* renderer) {
                     static_cast<float>(scaled_size),
                     static_cast<float>(scaled_size)
                 };
+
+                int texture_id;
+                SDL_FColor color;
+                get_reality_visuals(*tile, current_reality, texture_id, color);
                 
-                if (tile->texture_id > 0) {
-                    auto texture_it = textures_.find(tile->texture_id);
+                if (texture_id > 0) {
+                    auto texture_it = textures_.find(texture_id);
                     if (texture_it != textures_.end()) {
                         SDL_SetTextureColorMod(texture_it->second.get(), 
-                                             static_cast<Uint8>(tile->color.r * 255),
-                                             static_cast<Uint8>(tile->color.g * 255),
-                                             static_cast<Uint8>(tile->color.b * 255));
+                                             static_cast<Uint8>(color.r * 255),
+                                             static_cast<Uint8>(color.g * 255),
+                                             static_cast<Uint8>(color.b * 255));
                         SDL_SetTextureAlphaMod(texture_it->second.get(), 
-                                             static_cast<Uint8>(tile->color.a * 255));
+                                             static_cast<Uint8>(color.a * 255));
                         
                         SDL_RenderTexture(renderer, texture_it->second.get(), 
-                                        &tile->source_rect, &dest_rect);
+                                        &source_rect, &dest_rect);
                     }
                 } else {
-                    SDL_SetRenderDrawColorFloat(renderer, tile->color.r, tile->color.g, 
-                                              tile->color.b, tile->color.a);
+                    SDL_SetRenderDrawColorFloat(renderer, color.r, color.g, 
+                                              color.b, color.a);
                     SDL_RenderFillRect(renderer, &dest_rect);
                 }
                 
@@ -167,6 +177,10 @@ void TileRenderer::render(SDL_Renderer* renderer) {
             camera_.world_to_screen((tile_right + 1) * tile_size_, world_y, screen_x_right, screen_y);
             SDL_RenderLine(renderer, screen_x_left, screen_y, screen_x_right, screen_y);
         }
+    }
+
+    if (show_reality_indicator_) {
+        render_reality_indicator(renderer, current_reality);
     }
 }
 
@@ -243,4 +257,67 @@ void TileRenderer::update_config(const EngineConfig& config) {
     render_scale_ = config.render_scale;
     camera_.viewport_width = config.window_width;
     camera_.viewport_height = config.window_height;
+}
+
+void TileRenderer::get_reality_visuals(const Tile& tile, Reality current_reality, 
+                                     int& out_texture_id, SDL_FColor& out_color) const {
+    if (current_reality == Reality::A) {
+        out_texture_id = (tile.reality_a_texture_id > 0) ? tile.reality_a_texture_id : tile.texture_id;
+        out_color = (tile.reality_a_texture_id > 0) ? tile.reality_a_color : tile.color;
+    } else {
+        out_texture_id = (tile.reality_b_texture_id > 0) ? tile.reality_b_texture_id : tile.texture_id;
+        out_color = (tile.reality_b_texture_id > 0) ? tile.reality_b_color : tile.color;
+    }
+}
+
+void TileRenderer::render_reality_indicator(SDL_Renderer* renderer, Reality current_reality) {
+    float indicator_x = camera_.viewport_width - reality_indicator_size_ - 20.0f;
+    float indicator_y = 20.0f;
+    
+    const SDL_FColor& indicator_color = (current_reality == Reality::A) ? 
+        reality_a_indicator_color_ : reality_b_indicator_color_;
+    
+    SDL_SetRenderDrawColorFloat(renderer, 0.0f, 0.0f, 0.0f, 0.7f);
+    SDL_FRect background_rect = {
+        indicator_x - 5.0f,
+        indicator_y - 5.0f,
+        reality_indicator_size_ + 10.0f,
+        reality_indicator_size_ + 10.0f
+    };
+    SDL_RenderFillRect(renderer, &background_rect);
+    
+    SDL_SetRenderDrawColorFloat(renderer, indicator_color.r, indicator_color.g, 
+                               indicator_color.b, indicator_color.a);
+    SDL_FRect indicator_rect = {
+        indicator_x,
+        indicator_y,
+        reality_indicator_size_,
+        reality_indicator_size_
+    };
+    SDL_RenderFillRect(renderer, &indicator_rect);
+    
+    SDL_SetRenderDrawColorFloat(renderer, 1.0f, 1.0f, 1.0f, 1.0f);
+    if (current_reality == Reality::A) {
+        float center_x = indicator_x + reality_indicator_size_ * 0.5f;
+        float center_y = indicator_y + reality_indicator_size_ * 0.5f;
+        float line_size = reality_indicator_size_ * 0.3f;
+        
+        SDL_RenderLine(renderer, center_x, center_y + line_size, center_x - line_size, center_y - line_size);
+        SDL_RenderLine(renderer, center_x, center_y + line_size, center_x + line_size, center_y - line_size);
+        SDL_RenderLine(renderer, center_x - line_size * 0.5f, center_y, center_x + line_size * 0.5f, center_y);
+    } else {
+        float center_x = indicator_x + reality_indicator_size_ * 0.5f;
+        float center_y = indicator_y + reality_indicator_size_ * 0.5f;
+        float line_size = reality_indicator_size_ * 0.3f;
+        
+        SDL_FRect b_rect1 = {center_x - line_size, center_y - line_size, line_size * 0.5f, line_size * 0.8f};
+        SDL_FRect b_rect2 = {center_x - line_size, center_y, line_size * 0.5f, line_size};
+        SDL_RenderFillRect(renderer, &b_rect1);
+        SDL_RenderFillRect(renderer, &b_rect2);
+    }
+}
+
+void TileRenderer::set_reality_indicator_colors(const SDL_FColor& reality_a_color, const SDL_FColor& reality_b_color) {
+    reality_a_indicator_color_ = reality_a_color;
+    reality_b_indicator_color_ = reality_b_color;
 }

@@ -5,6 +5,7 @@
 #include "ComponentRegistry.h"
 #include "Components.h"
 #include "CameraController.h"
+#include "RealityManager.h"
 #include <SDL3/SDL.h>
 #include <memory>
 
@@ -29,13 +30,20 @@ struct AgentVisualConfig {
 class AgentRenderer : public IRenderSystem {
 private:
     AgentVisualConfig visual_config_;                        
-    CameraController* camera_controller_{nullptr};           
+    CameraController* camera_controller_{nullptr};    
+    RealityManager* reality_manager_{nullptr};       
     float animation_time_{0.0f};                             
     
     void render_agent_feedback(SDL_Renderer* renderer, EntityID entity, 
                               const Transform& transform, const Agent& agent, 
                               const Renderable* renderable);
     
+    void render_agent_with_animation(SDL_Renderer* renderer, EntityID entity,
+                                    const Transform& transform, const Agent& agent,
+                                    const Renderable& renderable, Reality current_reality);
+    
+    SDL_Rect get_animation_frame(const Agent& agent, Reality current_reality, float animation_time) const;
+
     void render_outline(SDL_Renderer* renderer, float x, float y, 
                        float width, float height, 
                        const SDL_FColor& color, float line_width);
@@ -68,6 +76,8 @@ public:
     void shutdown() override;
     
     void set_camera_controller(CameraController* camera_controller);
+
+    void set_reality_manager(RealityManager* reality_manager) { reality_manager_ = reality_manager; }
     
     AgentVisualConfig& get_visual_config() { return visual_config_; }
     
