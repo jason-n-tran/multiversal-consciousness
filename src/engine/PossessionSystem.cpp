@@ -16,10 +16,33 @@ void PossessionSystem::update(float delta_time) {
     if (camera_) {
         camera_->update(delta_time);
     }
-    SDL_Event event;
-    while (SDL_PollEvent(&event)) {
-        if (event.type == SDL_EVENT_KEY_DOWN) {
-            handle_input(event);
+
+    if (input_manager_) {
+        if (input_manager_->is_action_just_pressed(InputAction::POSSESS_AGENT_1)) {
+            possess_agent(1);
+        } else if (input_manager_->is_action_just_pressed(InputAction::POSSESS_AGENT_2)) {
+            possess_agent(2);
+        } else if (input_manager_->is_action_just_pressed(InputAction::POSSESS_AGENT_3)) {
+            possess_agent(3);
+        } else if (input_manager_->is_action_just_pressed(InputAction::POSSESS_AGENT_4)) {
+            possess_agent(4);
+        } else if (input_manager_->is_action_just_pressed(InputAction::POSSESS_AGENT_5)) {
+            possess_agent(5);
+        } else if (input_manager_->is_action_just_pressed(InputAction::POSSESS_AGENT_6)) {
+            possess_agent(6);
+        } else if (input_manager_->is_action_just_pressed(InputAction::POSSESS_AGENT_7)) {
+            possess_agent(7);
+        } else if (input_manager_->is_action_just_pressed(InputAction::POSSESS_AGENT_8)) {
+            possess_agent(8);
+        } else if (input_manager_->is_action_just_pressed(InputAction::POSSESS_AGENT_9)) {
+            possess_agent(9);
+        }
+    } else {
+        SDL_Event event;
+        while (SDL_PollEvent(&event)) {
+            if (event.type == SDL_EVENT_KEY_DOWN) {
+                handle_input(event);
+            }
         }
     }
 }
@@ -195,4 +218,8 @@ void PossessionSystem::set_agent_renderer(AgentRenderer* agent_renderer) {
     if (agent_renderer_ && camera_) {
         agent_renderer_->set_camera_controller(camera_.get());
     }
+}
+
+void PossessionSystem::set_input_manager(InputManager* input_manager) {
+    input_manager_ = input_manager;
 }

@@ -6,6 +6,7 @@
 #include "Components.h"
 #include "CameraController.h"
 #include "AgentRenderer.h"
+#include "InputManager.h"
 #include <SDL3/SDL.h>
 #include <optional>
 #include <unordered_map>
@@ -18,7 +19,8 @@ private:
     std::optional<EntityID> possessed_entity_;                  
     std::unordered_map<uint8_t, EntityID> agent_mappings_;      
     std::unique_ptr<CameraController> camera_;                 
-    AgentRenderer* agent_renderer_{nullptr};                   
+    AgentRenderer* agent_renderer_{nullptr};    
+    InputManager* input_manager_{nullptr};               
     
     void update_agent_mappings();
     
@@ -62,6 +64,8 @@ public:
     void set_camera_bounds(const CameraBounds& bounds);
     
     void set_agent_renderer(AgentRenderer* agent_renderer);
+
+    void set_input_manager(InputManager* input_manager);
     
     bool handle_input(const SDL_Event& event);
 };

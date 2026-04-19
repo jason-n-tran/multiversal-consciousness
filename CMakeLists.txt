@@ -44,6 +44,8 @@ set(SOURCES
     src/engine/AgentRenderer.cpp
     src/engine/QuantumSystem.cpp
     src/engine/QuantumNodeRenderer.cpp
+    src/engine/InputManager.cpp
+    src/engine/MovementSystem.cpp
 )
 
 add_executable(${PROJECT_NAME} ${SOURCES})

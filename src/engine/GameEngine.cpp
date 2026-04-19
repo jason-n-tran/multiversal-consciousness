@@ -61,6 +61,7 @@ bool GameEngine::initialize_ecs() {
     entity_manager_ = std::make_unique<EntityManager>();
     component_registry_ = std::make_unique<ComponentRegistry>();
     system_manager_ = std::make_unique<SystemManager>(*entity_manager_, *component_registry_);
+    input_manager_ = std::make_unique<InputManager>();
     
     system_manager_->initialize();
     
@@ -120,15 +121,20 @@ void GameEngine::run() {
         last_time = current_time;
         // Handle events
         while (SDL_PollEvent(&event)) {
-            if (event.type == SDL_EVENT_QUIT) {
-                is_running_ = false;
-            }
-            else if (event.type == SDL_EVENT_KEY_DOWN) {
-                if (event.key.key == SDLK_ESCAPE) {
+            bool handled_by_input = input_manager_->process_event(event);
+            
+            if (!handled_by_input) {
+                if (event.type == SDL_EVENT_QUIT) {
                     is_running_ = false;
                 }
             }
+            
+            if (input_manager_->is_action_just_pressed(InputAction::PAUSE)) {
+                is_running_ = false;
+            }
         }
+        
+        input_manager_->update(delta_time);
         system_manager_->update(delta_time);
 
         
@@ -157,6 +163,7 @@ void GameEngine::shutdown() {
     system_manager_.reset();
     component_registry_.reset();
     entity_manager_.reset();
+    input_manager_.reset();
     renderer_.reset();
     window_.reset();
     

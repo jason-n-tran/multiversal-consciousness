@@ -7,6 +7,7 @@
 #include "EntityManager.h"
 #include "ComponentRegistry.h"
 #include "System.h"
+#include "InputManager.h"
 
 struct EngineConfig {
     std::string window_title = "Multiversal Consciousness";
@@ -26,6 +27,7 @@ private:
     std::unique_ptr<EntityManager> entity_manager_;
     std::unique_ptr<ComponentRegistry> component_registry_;
     std::unique_ptr<SystemManager> system_manager_;
+    std::unique_ptr<InputManager> input_manager_;
     
     bool initialize_sdl();
     bool create_window(const EngineConfig& config);
@@ -59,6 +61,8 @@ public:
     EntityManager& get_entity_manager() { return *entity_manager_; }
 
     ComponentRegistry& get_component_registry() { return *component_registry_; }
+
+    InputManager& get_input_manager() { return *input_manager_; }
 
     SystemManager& get_system_manager() { return *system_manager_; }
     
