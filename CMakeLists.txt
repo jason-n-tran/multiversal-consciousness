@@ -46,6 +46,8 @@ set(SOURCES
     src/engine/QuantumNodeRenderer.cpp
     src/engine/InputManager.cpp
     src/engine/MovementSystem.cpp
+    src/engine/CoordinationSystem.cpp
+    src/engine/PuzzleSystem.cpp
 )
 
 add_executable(${PROJECT_NAME} ${SOURCES})
