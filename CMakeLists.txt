@@ -48,6 +48,8 @@ set(SOURCES
     src/engine/MovementSystem.cpp
     src/engine/CoordinationSystem.cpp
     src/engine/PuzzleSystem.cpp
+    src/engine/LevelLoader.cpp
+    src/engine/PuzzleValidator.cpp
 )
 
 add_executable(${PROJECT_NAME} ${SOURCES})
