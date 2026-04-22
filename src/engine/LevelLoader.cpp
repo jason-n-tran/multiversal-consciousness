@@ -1,18 +1,15 @@
 #include "LevelLoader.h"
-#include "PuzzleValidator.h"
 #include <fstream>
 #include <sstream>
 #include <iostream>
 
 LevelLoader::LevelLoader(EntityManager* entity_manager, ComponentRegistry* component_registry)
     : entity_manager_(entity_manager), component_registry_(component_registry) {
-    puzzle_validator_ = std::make_unique<PuzzleValidator>(entity_manager, component_registry);
 }
 
 LevelData LevelLoader::load_level_from_file(const std::string& filename) {
     LevelData level_data;
     
-    std::cout << "Opening file: " << filename << std::endl;
     
     std::ifstream file(filename);
     if (!file.is_open()) {
@@ -20,28 +17,22 @@ LevelData LevelLoader::load_level_from_file(const std::string& filename) {
         return level_data;
     }
     
-    std::cout << "File opened successfully" << std::endl;
     
     std::string line;
     std::string current_section;
     std::stringstream section_data;
     
     while (std::getline(file, line)) {
-        std::cout << "Read line: " << line << std::endl;
         
         if (line.empty() || line[0] == '#') {
             continue;
         }
         
         if (line[0] == '[' && line.back() == ']') {
-            std::cout << "Found section header: " << line << std::endl;
             
             if (!current_section.empty()) {
-                std::cout << "Processing section: " << current_section << std::endl;
                 if (current_section == "info") {
-                    std::cout << "Processing info section" << std::endl;
                     std::string info_data = section_data.str();
-                    std::cout << "Info data: " << info_data << std::endl;
                     size_t name_pos = info_data.find("name=");
                     if (name_pos != std::string::npos) {
                         size_t start = name_pos + 5;
@@ -50,7 +41,6 @@ LevelData LevelLoader::load_level_from_file(const std::string& filename) {
                             end = info_data.length();
                         }
                         level_data.name = info_data.substr(start, end - start);
-                        std::cout << "Parsed name: " << level_data.name << std::endl;
                     }
                     
                     size_t desc_pos = info_data.find("description=");
@@ -61,7 +51,6 @@ LevelData LevelLoader::load_level_from_file(const std::string& filename) {
                             end = info_data.length();
                         }
                         level_data.description = info_data.substr(start, end - start);
-                        std::cout << "Parsed description: " << level_data.description << std::endl;
                     }
                 } else if (current_section == "agents") {
                     level_data.agents = parse_agents(section_data.str());
@@ -95,7 +84,6 @@ LevelData LevelLoader::load_level_from_file(const std::string& filename) {
     }
     
     file.close();
-    std::cout << "Loaded level: " << level_data.name << std::endl;
     return level_data;
 }
 
@@ -204,29 +192,27 @@ std::vector<LevelEnvironment> LevelLoader::parse_environment(const std::string& 
     return environment;
 }
 
-std::vector<PuzzleCondition> LevelLoader::parse_conditions(const std::string& data) {
-    std::vector<PuzzleCondition> conditions;
+std::vector<LevelCondition> LevelLoader::parse_conditions(const std::string& data) {
+    std::vector<LevelCondition> conditions;
     std::istringstream stream(data);
     std::string line;
     
     while (std::getline(stream, line)) {
-        if (line.empty()) continue;
-        
-        PuzzleCondition condition;
-        std::istringstream line_stream(line);
-        std::string token;
-        
-        if (std::getline(line_stream, token, ',')) {
-            condition.type = token;
-        }
-        if (std::getline(line_stream, token, ',')) {
-            condition.target = token;
-        }
-        if (std::getline(line_stream, token, ',')) {
-            condition.value = token;
+        if (line.empty()) {
+            continue;
         }
         
-        conditions.push_back(condition);
+        size_t first_comma = line.find(',');
+        size_t second_comma = line.find(',', first_comma + 1);
+        
+        if (first_comma != std::string::npos && second_comma != std::string::npos) {
+            LevelCondition condition;
+            condition.type = line.substr(0, first_comma);
+            condition.target = line.substr(first_comma + 1, second_comma - first_comma - 1);
+            condition.value = line.substr(second_comma + 1);
+            
+            conditions.push_back(std::move(condition));
+        }
     }
     
     return conditions;
@@ -380,18 +366,12 @@ EntityID LevelLoader::create_environment(const LevelEnvironment& env_data) {
     return entity;
 }
 
-bool LevelLoader::validate_puzzle_completion(const std::vector<PuzzleCondition>& conditions) {
-    if (!puzzle_validator_) {
-        return false;
-    }
-    return puzzle_validator_->are_all_conditions_met(conditions);
+bool LevelLoader::validate_puzzle_completion(const std::vector<LevelCondition>& conditions) {
+    (void)conditions;
+    return false;
 }
 
-bool LevelLoader::check_condition(const PuzzleCondition& condition) {
-    if (!puzzle_validator_) {
-        return false;
-    }
-    
-    ValidationResult result = puzzle_validator_->validate_condition(condition);
-    return result.is_valid;
+bool LevelLoader::check_condition(const LevelCondition& condition) {
+    (void)condition; 
+    return false;
 }

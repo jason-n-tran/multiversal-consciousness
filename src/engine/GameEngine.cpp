@@ -1,6 +1,7 @@
 #include "GameEngine.h"
 #include <iostream>
 #include <chrono>
+#include <thread>
 
 GameEngine::GameEngine() 
     : is_running_(false), is_initialized_(false) {
@@ -113,11 +114,21 @@ void GameEngine::run() {
     std::cout << "Starting main game loop..." << std::endl;
 
     auto last_time = std::chrono::high_resolution_clock::now();
+    constexpr float TARGET_FPS = 60.0f;
+    constexpr float TARGET_FRAME_TIME = 1.0f / TARGET_FPS;
+    constexpr std::chrono::microseconds TARGET_FRAME_DURATION(static_cast<long>(TARGET_FRAME_TIME * 1000000));
+    
+    float accumulated_time = 0.0f;
+    int frame_count = 0;
+    auto fps_timer = std::chrono::high_resolution_clock::now();
     
     while (is_running_) {
+        auto frame_start = std::chrono::high_resolution_clock::now();
         auto current_time = std::chrono::high_resolution_clock::now();
         auto delta_duration = current_time - last_time;
         float delta_time = std::chrono::duration<float>(delta_duration).count();
+        constexpr float MAX_DELTA_TIME = 1.0f / 30.0f; 
+        delta_time = std::min(delta_time, MAX_DELTA_TIME);
         last_time = current_time;
         // Handle events
         while (SDL_PollEvent(&event)) {
@@ -144,7 +155,33 @@ void GameEngine::run() {
         
         SDL_RenderPresent(renderer_.get());
         
-        SDL_Delay(16);
+        auto frame_end = std::chrono::high_resolution_clock::now();
+        auto frame_duration = frame_end - frame_start;
+        
+        if (frame_duration < TARGET_FRAME_DURATION) {
+            auto sleep_duration = TARGET_FRAME_DURATION - frame_duration;
+            std::this_thread::sleep_for(sleep_duration);
+        }
+        
+        accumulated_time += delta_time;
+        frame_count++;
+        
+        auto fps_elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(
+            current_time - fps_timer).count();
+        
+        if (fps_elapsed >= 1000) { 
+            float avg_fps = frame_count / accumulated_time;
+            
+            if (frame_count % 60 == 0) { 
+                std::string title = "Quantum Bifurcation - Complete Engine Integration (FPS: " + 
+                                  std::to_string(static_cast<int>(avg_fps)) + ")";
+                SDL_SetWindowTitle(window_.get(), title.c_str());
+            }
+            
+            accumulated_time = 0.0f;
+            frame_count = 0;
+            fps_timer = current_time;
+        }
     }
     
     std::cout << "Main game loop ended" << std::endl;

@@ -177,6 +177,14 @@ void AgentRenderer::render_agent_number(SDL_Renderer* renderer, float x, float y
             SDL_RenderLine(renderer, x - line_length/2, y, x - line_length/2, y + line_length);
             SDL_RenderLine(renderer, x - line_length/2, y + line_length, x + line_length/2, y + line_length);
             break;
+        case 3:
+            // Simple "3" shape
+            SDL_RenderLine(renderer, x - line_length/2, y - line_length, x + line_length/2, y - line_length);
+            SDL_RenderLine(renderer, x + line_length/2, y - line_length, x + line_length/2, y);
+            SDL_RenderLine(renderer, x - line_length/2, y, x + line_length/2, y);
+            SDL_RenderLine(renderer, x + line_length/2, y, x + line_length/2, y + line_length);
+            SDL_RenderLine(renderer, x - line_length/2, y + line_length, x + line_length/2, y + line_length);
+            break;
         default:
             SDL_RenderRect(renderer, &background_rect);
             break;

@@ -13,7 +13,10 @@ class ISystem {
 public:
     virtual ~ISystem() = default;
     
-    virtual void initialize(EntityManager& entity_manager, ComponentRegistry& component_registry) {}
+    virtual void initialize(EntityManager& entity_manager, ComponentRegistry& component_registry) {
+        entity_manager_ = &entity_manager;
+        component_registry_ = &component_registry;
+    }
     
     virtual void update(float delta_time) = 0;
     

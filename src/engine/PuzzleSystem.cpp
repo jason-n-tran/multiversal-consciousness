@@ -3,7 +3,8 @@
 #include <cmath>
 
 void PuzzleSystem::initialize(EntityManager& entity_manager, ComponentRegistry& component_registry) {
-    ISystem::initialize(entity_manager, component_registry);
+    entity_manager_ = &entity_manager;
+    component_registry_ = &component_registry;
     
     initialize_condition_checkers();
     initialize_feedback_generators();

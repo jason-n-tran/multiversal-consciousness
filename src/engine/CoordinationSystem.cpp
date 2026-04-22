@@ -9,7 +9,8 @@ CoordinationSystem::CoordinationSystem(std::unique_ptr<RealityManager> reality_m
 }
 
 void CoordinationSystem::initialize(EntityManager& entity_manager, ComponentRegistry& component_registry) {
-    ISystem::initialize(entity_manager, component_registry);
+    entity_manager_ = &entity_manager;
+    component_registry_ = &component_registry;
     
     initialize_effect_evaluators();
 }
@@ -227,8 +228,8 @@ void CoordinationSystem::evaluate_movement_effects(const AgentAction& action) {
                 
                 if (agent_inventory && door && !door->required_key.empty()) {
                     if (agent_inventory->items.count(door->required_key) > 0) {
-                        AgentEffect effect(action.agent_entity, action.agent_entity, "environmental_change", action.action_reality);
-                        effect.effect_data["entity_id"] = static_cast<float>(door_entity);
+                        AgentEffect effect(action.agent_entity, door_entity, "door_unlock", action.action_reality);
+                        effect.effect_data["entity"] = static_cast<float>(door_entity);
                         effect.effect_data["new_state"] = 1.0f;
                         pending_effects_.push_back(effect);
                     }
