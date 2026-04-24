@@ -5,10 +5,13 @@
 #include "ComponentRegistry.h"
 #include "RealityManager.h"
 #include "Components.h"
+#include "InputManager.h"
 #include <queue>
 #include <chrono>
 #include <memory>
 #include <unordered_map>
+
+class PossessionSystem;
 
 struct QuantumInteraction {
     EntityID node_entity;                             
@@ -27,6 +30,8 @@ class QuantumSystem : public ISystem {
 private:
     std::queue<QuantumInteraction> pending_interactions_;    
     std::unique_ptr<RealityManager> reality_manager_; 
+    InputManager* input_manager_{nullptr}; 
+    PossessionSystem* possession_system_{nullptr};
     
     static constexpr float DEFAULT_INTERACTION_RADIUS = 32.0f;
     
@@ -74,8 +79,14 @@ public:
     size_t get_pending_interaction_count() const {
         return pending_interactions_.size();
     }
+
+    void set_input_manager(InputManager* input_manager);
+    
+    void set_possession_system(PossessionSystem* possession_system);
     
 private:
+    void trigger_interaction_for_agent(EntityID agent_entity);
+
     float calculate_distance(EntityID entity1, EntityID entity2) const;
     
     bool validate_entity_components(EntityID entity, bool require_agent) const;

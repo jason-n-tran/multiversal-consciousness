@@ -20,6 +20,11 @@ void RealitySystem::update(float delta_time) {
     if (!entity_manager_ || !component_registry_) {
         return;
     }
+
+    if (input_manager_ && input_manager_->is_action_just_pressed(InputAction::SWITCH_REALITY)) {
+        switch_reality();
+        std::cout << "Switched to Reality " << (get_current_reality() == Reality::A ? "A" : "B") << std::endl;
+    }
     
     const auto* transform_container = component_registry_->get_all_components<Transform>();
     if (transform_container) {
@@ -127,4 +132,8 @@ const EnvironmentalSwitch* RealitySystem::get_shared_switch(EntityID entity) con
         return nullptr;
     }
     return reality_manager_->get_shared_switch(entity);
+}
+
+void RealitySystem::set_input_manager(InputManager* input_manager) {
+    input_manager_ = input_manager;
 }

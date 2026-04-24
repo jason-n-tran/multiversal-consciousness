@@ -83,6 +83,12 @@ void TileRenderer::initialize(EntityManager& entity_manager, ComponentRegistry& 
 }
 
 void TileRenderer::update(float delta_time) {
+    if (camera_controller_) {
+        camera_.x = camera_controller_->get_x();
+        camera_.y = camera_controller_->get_y();
+        // Note: zoom is not available from CameraController, keep current zoom
+    }
+    
     (void)delta_time;
 }
 

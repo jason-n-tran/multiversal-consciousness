@@ -1,7 +1,10 @@
 #include "QuantumSystem.h"
+#include "PossessionSystem.h"
 #include <cmath>
 #include <algorithm>
 #include <unordered_map>
+#include <limits>
+#include <iostream>
 
 QuantumSystem::QuantumSystem(std::unique_ptr<RealityManager> reality_manager)
     : reality_manager_(std::move(reality_manager)) {
@@ -16,6 +19,17 @@ void QuantumSystem::initialize(EntityManager& entity_manager, ComponentRegistry&
 }
 
 void QuantumSystem::update(float delta_time) {
+    if (input_manager_ && input_manager_->is_action_just_pressed(InputAction::INTERACT)) {
+        // Check if possessed agent is near a quantum node
+        if (possession_system_) {
+            auto possessed_entity = possession_system_->get_possessed_entity();
+            if (possessed_entity.has_value()) {
+                // Find nearby quantum nodes and trigger interaction
+                trigger_interaction_for_agent(possessed_entity.value());
+            }
+        }
+    }
+    
     update_interaction_prompts(delta_time);
     
     while (!pending_interactions_.empty()) {

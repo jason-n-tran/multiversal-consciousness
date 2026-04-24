@@ -17,6 +17,7 @@ void InputManager::initialize_default_mappings() {
     
     key_mappings_[SDLK_E] = InputAction::INTERACT;
     key_mappings_[SDLK_SPACE] = InputAction::INTERACT;
+    key_mappings_[SDLK_R] = InputAction::SWITCH_REALITY;
     key_mappings_[SDLK_TAB] = InputAction::SWITCH_REALITY;
     key_mappings_[SDLK_ESCAPE] = InputAction::PAUSE;
     

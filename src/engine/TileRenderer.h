@@ -9,6 +9,7 @@
 #include "SDLDeleter.h"
 #include "ConfigLoader.h"
 #include "RealityManager.h"
+#include "CameraController.h"
 
 struct Tile {
     int texture_id = 0;
@@ -59,6 +60,7 @@ private:
     std::unique_ptr<TileMap> tile_map_;
     Camera camera_;
     RealityManager* reality_manager_{nullptr};  
+    CameraController* camera_controller_{nullptr};
     
     int tile_size_;
     float render_scale_;
@@ -122,6 +124,8 @@ public:
     void set_reality_manager(RealityManager* reality_manager) { reality_manager_ = reality_manager; }
     
     void set_reality_indicator_colors(const SDL_FColor& reality_a_color, const SDL_FColor& reality_b_color);
+
+    void set_camera_controller(CameraController* camera_controller) { camera_controller_ = camera_controller; }
     
     void update_config(const EngineConfig& config);
 };

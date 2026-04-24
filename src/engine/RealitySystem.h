@@ -2,12 +2,14 @@
 
 #include "System.h"
 #include "RealityManager.h"
+#include "InputManager.h"
 #include <memory>
 
 
 class RealitySystem : public ISystem {
 private:
     std::unique_ptr<RealityManager> reality_manager_;
+    InputManager* input_manager_{nullptr};
     
 public:
 
@@ -38,6 +40,8 @@ public:
     void synchronize_entity(EntityID entity);
     
     void handle_entity_destruction(EntityID entity);
+    
+    void set_input_manager(InputManager* input_manager);
     
     const Door* get_shared_door(EntityID entity) const;
     
