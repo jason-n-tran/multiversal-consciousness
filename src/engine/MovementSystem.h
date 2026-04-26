@@ -8,12 +8,17 @@
 #include "PossessionSystem.h"
 #include <memory>
 
+class QuantumLoadoutSystem;
+
 class MovementSystem : public ISystem {
 private:
     InputManager* input_manager_{nullptr};
     PossessionSystem* possession_system_{nullptr};
+    QuantumLoadoutSystem* loadout_system_{nullptr};
     
     void apply_movement(EntityID entity, float delta_time);
+
+    bool handle_jumping(EntityID entity, PhysicsComponent* physics, Agent* agent, bool jump_pressed);
     
 public:
     MovementSystem() = default;
@@ -35,4 +40,6 @@ public:
     void set_input_manager(InputManager* input_manager);
     
     void set_possession_system(PossessionSystem* possession_system);
+
+    void set_loadout_system(QuantumLoadoutSystem* loadout_system);
 };

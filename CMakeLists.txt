@@ -51,6 +51,7 @@ set(SOURCES
     src/engine/LevelLoader.cpp
     src/engine/PuzzleValidator.cpp
     src/engine/AbilitySystem.cpp
+    src/engine/PhysicsSystem.cpp
 )
 
 add_executable(${PROJECT_NAME} ${SOURCES})
