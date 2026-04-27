@@ -52,6 +52,7 @@ set(SOURCES
     src/engine/PuzzleValidator.cpp
     src/engine/AbilitySystem.cpp
     src/engine/PhysicsSystem.cpp
+    src/engine/QuantumLoadoutSystem.cpp
 )
 
 add_executable(${PROJECT_NAME} ${SOURCES})

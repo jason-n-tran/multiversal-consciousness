@@ -12,6 +12,7 @@
 #include <unordered_map>
 
 class PossessionSystem;
+class QuantumLoadoutSystem;
 
 struct QuantumInteraction {
     EntityID node_entity;                             
@@ -32,6 +33,7 @@ private:
     std::unique_ptr<RealityManager> reality_manager_; 
     InputManager* input_manager_{nullptr}; 
     PossessionSystem* possession_system_{nullptr};
+    QuantumLoadoutSystem* loadout_system_{nullptr};
     
     static constexpr float DEFAULT_INTERACTION_RADIUS = 32.0f;
     
@@ -83,9 +85,13 @@ public:
     void set_input_manager(InputManager* input_manager);
     
     void set_possession_system(PossessionSystem* possession_system);
+
+    void set_loadout_system(QuantumLoadoutSystem* loadout_system);
     
 private:
     void trigger_interaction_for_agent(EntityID agent_entity);
+
+    AbilityType convert_item_to_ability(const std::string& item_name) const;
 
     float calculate_distance(EntityID entity1, EntityID entity2) const;
     

@@ -1,5 +1,6 @@
 #include "QuantumSystem.h"
 #include "PossessionSystem.h"
+#include "QuantumLoadoutSystem.h"
 #include <cmath>
 #include <algorithm>
 #include <unordered_map>
@@ -193,9 +194,27 @@ void QuantumSystem::process_quantum_distribution(const QuantumInteraction& inter
     if (!quantum_node) {
         return;
     }
+
+    if (!component_registry_->has_component<LoadoutComponent>(interaction.agent_entity)) {
+        LoadoutComponent loadout;
+        component_registry_->add_component<LoadoutComponent>(interaction.agent_entity, loadout);
+    }
     
     add_item_to_agent(interaction.agent_entity, quantum_node->reality_a_item, Reality::A);
     add_item_to_agent(interaction.agent_entity, quantum_node->reality_b_item, Reality::B);
+
+    if (loadout_system_) {
+        AbilityType ability_a = convert_item_to_ability(quantum_node->reality_a_item);
+        AbilityType ability_b = convert_item_to_ability(quantum_node->reality_b_item);
+        
+        if (ability_a != AbilityType::None) {
+            loadout_system_->assign_ability(interaction.agent_entity, ability_a, Reality::A);
+        }
+        
+        if (ability_b != AbilityType::None) {
+            loadout_system_->assign_ability(interaction.agent_entity, ability_b, Reality::B);
+        }
+    }
     
     activate_quantum_node(interaction.node_entity);
 }
@@ -252,4 +271,82 @@ void QuantumSystem::activate_quantum_node(EntityID node_entity) {
     
     reality_manager_->set_reality_quantum_node(node_entity, *quantum_node, Reality::A);
     reality_manager_->set_reality_quantum_node(node_entity, *quantum_node, Reality::B);
+}
+
+void QuantumSystem::set_input_manager(InputManager* input_manager) {
+    input_manager_ = input_manager;
+}
+
+void QuantumSystem::set_possession_system(PossessionSystem* possession_system) {
+    possession_system_ = possession_system;
+}
+
+void QuantumSystem::set_loadout_system(QuantumLoadoutSystem* loadout_system) {
+    loadout_system_ = loadout_system;
+}
+
+void QuantumSystem::trigger_interaction_for_agent(EntityID agent_entity) {
+    if (!component_registry_ || !entity_manager_) {
+        return;
+    }
+    
+    // Get all quantum nodes
+    const auto* quantum_container = component_registry_->get_all_components<QuantumNode>();
+    if (!quantum_container) {
+        return;
+    }
+    
+    const auto& node_entities = quantum_container->get_entities();
+    
+    // Find the closest quantum node within interaction range
+    EntityID closest_node = 0;
+    float closest_distance = std::numeric_limits<float>::max();
+    
+    for (EntityID node_entity : node_entities) {
+        if (!entity_manager_->is_valid(node_entity)) {
+            continue;
+        }
+        
+        if (is_agent_in_range(node_entity, agent_entity)) {
+            float distance = calculate_distance(agent_entity, node_entity);
+            if (distance >= 0.0f && distance < closest_distance) {
+                closest_distance = distance;
+                closest_node = node_entity;
+            }
+        }
+    }
+    
+    // Trigger interaction with the closest node if found
+    if (closest_node != 0) {
+        if (trigger_quantum_node(closest_node, agent_entity)) {
+            std::cout << "Triggered quantum interaction between agent " << agent_entity 
+                      << " and node " << closest_node << std::endl;
+        }
+    }
+}
+
+AbilityType QuantumSystem::convert_item_to_ability(const std::string& item_name) const {
+    // Map item names to ability types
+    // This mapping defines how quantum node items translate to abilities
+    static const std::unordered_map<std::string, AbilityType> item_to_ability_map = {
+        {"axe", AbilityType::Axe},
+        {"Axe", AbilityType::Axe},
+        {"keycard", AbilityType::Keycard},
+        {"Keycard", AbilityType::Keycard},
+        {"key_card", AbilityType::Keycard},
+        {"double_jump", AbilityType::DoubleJump},
+        {"DoubleJump", AbilityType::DoubleJump},
+        {"double-jump", AbilityType::DoubleJump},
+        {"dash", AbilityType::Dash},
+        {"Dash", AbilityType::Dash},
+        {"water_walk", AbilityType::WaterWalk},
+        {"WaterWalk", AbilityType::WaterWalk},
+        {"water-walk", AbilityType::WaterWalk},
+        {"phase_shift", AbilityType::PhaseShift},
+        {"PhaseShift", AbilityType::PhaseShift},
+        {"phase-shift", AbilityType::PhaseShift}
+    };
+    
+    auto it = item_to_ability_map.find(item_name);
+    return (it != item_to_ability_map.end()) ? it->second : AbilityType::None;
 }
