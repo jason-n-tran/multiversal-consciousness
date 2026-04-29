@@ -55,6 +55,7 @@ set(SOURCES
     src/engine/QuantumLoadoutSystem.cpp
     src/engine/InteractiveObstacles.cpp
     src/engine/InteractiveObstacleSystem.cpp
+    src/engine/HUDSystem.cpp
 )
 
 add_executable(${PROJECT_NAME} ${SOURCES})

@@ -1,4 +1,5 @@
 #include "PossessionSystem.h"
+#include "HUDSystem.h"
 #include <iostream>
 
 void PossessionSystem::initialize(EntityManager& entity_manager, ComponentRegistry& component_registry) {
@@ -113,6 +114,10 @@ bool PossessionSystem::possess_agent(uint8_t agent_number) {
     set_agent_possession_state(target_entity, true);
     
     update_camera_target();
+
+    if (hud_system_) {
+        hud_system_->on_possession_changed(agent_number);
+    }
     
     std::cout << "Possessed agent " << static_cast<int>(agent_number) 
               << " (Entity ID: " << target_entity << ")" << std::endl;
@@ -127,6 +132,10 @@ void PossessionSystem::release_possession() {
         std::cout << "Released possession of Entity ID: " << possessed_entity_.value() << std::endl;
         
         possessed_entity_.reset();
+
+        if (hud_system_) {
+            hud_system_->on_possession_changed(0); // 0 indicates no agent possessed
+        }
         
         if (camera_) {
             camera_->set_target_entity(std::nullopt);
@@ -222,4 +231,8 @@ void PossessionSystem::set_agent_renderer(AgentRenderer* agent_renderer) {
 
 void PossessionSystem::set_input_manager(InputManager* input_manager) {
     input_manager_ = input_manager;
+}
+
+void PossessionSystem::set_hud_system(HUDSystem* hud_system) {
+    hud_system_ = hud_system;
 }

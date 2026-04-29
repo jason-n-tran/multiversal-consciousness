@@ -13,6 +13,7 @@
 #include <memory>
 #include <cstdint>
 
+class HUDSystem;
 
 class PossessionSystem : public ISystem {
 private:
@@ -20,7 +21,8 @@ private:
     std::unordered_map<uint8_t, EntityID> agent_mappings_;      
     std::unique_ptr<CameraController> camera_;                 
     AgentRenderer* agent_renderer_{nullptr};    
-    InputManager* input_manager_{nullptr};               
+    InputManager* input_manager_{nullptr};  
+    HUDSystem* hud_system_{nullptr};              
     
     void update_agent_mappings();
     
@@ -66,6 +68,8 @@ public:
     void set_agent_renderer(AgentRenderer* agent_renderer);
 
     void set_input_manager(InputManager* input_manager);
+
+    void set_hud_system(HUDSystem* hud_system);
     
     bool handle_input(const SDL_Event& event);
 };

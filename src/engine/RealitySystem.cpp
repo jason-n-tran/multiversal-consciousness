@@ -1,4 +1,5 @@
 #include "RealitySystem.h"
+#include "HUDSystem.h"
 #include "ComponentRegistry.h"
 #include "EntityManager.h"
 #include <iostream>
@@ -46,8 +47,14 @@ bool RealitySystem::switch_reality() {
     if (!reality_manager_) {
         return false;
     }
+
+    bool success = reality_manager_->switch_reality();
     
-    return reality_manager_->switch_reality();
+    if (success && hud_system_) {
+        hud_system_->on_reality_changed(reality_manager_->get_current_reality());
+    }
+    
+    return success;
 }
 
 Reality RealitySystem::get_current_reality() const {
@@ -136,4 +143,8 @@ const EnvironmentalSwitch* RealitySystem::get_shared_switch(EntityID entity) con
 
 void RealitySystem::set_input_manager(InputManager* input_manager) {
     input_manager_ = input_manager;
+}
+
+void RealitySystem::set_hud_system(HUDSystem* hud_system) {
+    hud_system_ = hud_system;
 }

@@ -5,11 +5,13 @@
 #include "InputManager.h"
 #include <memory>
 
+class HUDSystem;
 
 class RealitySystem : public ISystem {
 private:
     std::unique_ptr<RealityManager> reality_manager_;
     InputManager* input_manager_{nullptr};
+    HUDSystem* hud_system_{nullptr};
     
 public:
 
@@ -42,6 +44,8 @@ public:
     void handle_entity_destruction(EntityID entity);
     
     void set_input_manager(InputManager* input_manager);
+
+    void set_hud_system(HUDSystem* hud_system);
     
     const Door* get_shared_door(EntityID entity) const;
     
