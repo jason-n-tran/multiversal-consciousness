@@ -53,6 +53,8 @@ set(SOURCES
     src/engine/AbilitySystem.cpp
     src/engine/PhysicsSystem.cpp
     src/engine/QuantumLoadoutSystem.cpp
+    src/engine/InteractiveObstacles.cpp
+    src/engine/InteractiveObstacleSystem.cpp
 )
 
 add_executable(${PROJECT_NAME} ${SOURCES})
