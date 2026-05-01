@@ -103,10 +103,22 @@ void TileRenderer::render(SDL_Renderer* renderer) {
     if (reality_manager_) {
         current_reality = reality_manager_->get_current_reality();
     }
+
+    if (camera_controller_) {
+        camera_.x = camera_controller_->get_x();
+        camera_.y = camera_controller_->get_y();
+        camera_.viewport_width = camera_controller_->get_screen_width();
+        camera_.viewport_height = camera_controller_->get_screen_height();
+    }
     
     float world_left, world_top, world_right, world_bottom;
-    camera_.screen_to_world(0, 0, world_left, world_top);
-    camera_.screen_to_world(camera_.viewport_width, camera_.viewport_height, world_right, world_bottom);
+    if (camera_controller_) {
+        camera_controller_->screen_to_world(0, 0, world_left, world_top);
+        camera_controller_->screen_to_world(camera_controller_->get_screen_width(), camera_controller_->get_screen_height(), world_right, world_bottom);
+    } else {
+        camera_.screen_to_world(0, 0, world_left, world_top);
+        camera_.screen_to_world(camera_.viewport_width, camera_.viewport_height, world_right, world_bottom);
+    }
     
     int tile_left = std::max(0, static_cast<int>(world_left / tile_size_) - 1);
     int tile_top = std::max(0, static_cast<int>(world_top / tile_size_) - 1);
@@ -125,9 +137,14 @@ void TileRenderer::render(SDL_Renderer* renderer) {
                 float world_y = y * tile_size_;
                 
                 int screen_x, screen_y;
-                camera_.world_to_screen(world_x, world_y, screen_x, screen_y);
+                if (camera_controller_) {
+                    camera_controller_->world_to_screen(world_x, world_y, screen_x, screen_y);
+                } else {
+                    camera_.world_to_screen(world_x, world_y, screen_x, screen_y);
+                }
                 
-                int scaled_size = static_cast<int>(tile_size_ * camera_.zoom * render_scale_);
+                float zoom = camera_controller_ ? 1.0f : camera_.zoom; 
+                int scaled_size = static_cast<int>(tile_size_ * zoom * render_scale_);
                 
                 SDL_FRect dest_rect{
                     static_cast<float>(screen_x),
@@ -171,16 +188,26 @@ void TileRenderer::render(SDL_Renderer* renderer) {
         for (int x = tile_left; x <= tile_right + 1; ++x) {
             float world_x = x * tile_size_;
             int screen_x, screen_y_top, screen_y_bottom;
-            camera_.world_to_screen(world_x, tile_top * tile_size_, screen_x, screen_y_top);
-            camera_.world_to_screen(world_x, (tile_bottom + 1) * tile_size_, screen_x, screen_y_bottom);
+            if (camera_controller_) {
+                camera_controller_->world_to_screen(world_x, tile_top * tile_size_, screen_x, screen_y_top);
+                camera_controller_->world_to_screen(world_x, (tile_bottom + 1) * tile_size_, screen_x, screen_y_bottom);
+            } else {
+                camera_.world_to_screen(world_x, tile_top * tile_size_, screen_x, screen_y_top);
+                camera_.world_to_screen(world_x, (tile_bottom + 1) * tile_size_, screen_x, screen_y_bottom);
+            }
             SDL_RenderLine(renderer, screen_x, screen_y_top, screen_x, screen_y_bottom);
         }
         
         for (int y = tile_top; y <= tile_bottom + 1; ++y) {
             float world_y = y * tile_size_;
             int screen_x_left, screen_x_right, screen_y;
-            camera_.world_to_screen(tile_left * tile_size_, world_y, screen_x_left, screen_y);
-            camera_.world_to_screen((tile_right + 1) * tile_size_, world_y, screen_x_right, screen_y);
+            if (camera_controller_) {
+                camera_controller_->world_to_screen(tile_left * tile_size_, world_y, screen_x_left, screen_y);
+                camera_controller_->world_to_screen((tile_right + 1) * tile_size_, world_y, screen_x_right, screen_y);
+            } else {
+                camera_.world_to_screen(tile_left * tile_size_, world_y, screen_x_left, screen_y);
+                camera_.world_to_screen((tile_right + 1) * tile_size_, world_y, screen_x_right, screen_y);
+            }
             SDL_RenderLine(renderer, screen_x_left, screen_y, screen_x_right, screen_y);
         }
     }

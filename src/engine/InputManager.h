@@ -12,6 +12,7 @@ enum class InputAction : uint8_t {
     MOVE_DOWN,
     MOVE_LEFT,
     MOVE_RIGHT,
+    JUMP,
     INTERACT,
     SWITCH_REALITY,
     PAUSE,

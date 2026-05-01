@@ -6,17 +6,18 @@ InputManager::InputManager() {
 }
 
 void InputManager::initialize_default_mappings() {
-    key_mappings_[SDLK_W] = InputAction::MOVE_UP;
-    key_mappings_[SDLK_UP] = InputAction::MOVE_UP;
-    key_mappings_[SDLK_S] = InputAction::MOVE_DOWN;
-    key_mappings_[SDLK_DOWN] = InputAction::MOVE_DOWN;
     key_mappings_[SDLK_A] = InputAction::MOVE_LEFT;
     key_mappings_[SDLK_LEFT] = InputAction::MOVE_LEFT;
     key_mappings_[SDLK_D] = InputAction::MOVE_RIGHT;
     key_mappings_[SDLK_RIGHT] = InputAction::MOVE_RIGHT;
+    key_mappings_[SDLK_S] = InputAction::MOVE_DOWN;
+    key_mappings_[SDLK_DOWN] = InputAction::MOVE_DOWN;
+
+    key_mappings_[SDLK_W] = InputAction::JUMP;
+    key_mappings_[SDLK_UP] = InputAction::JUMP;
+    key_mappings_[SDLK_SPACE] = InputAction::JUMP;
     
     key_mappings_[SDLK_E] = InputAction::INTERACT;
-    key_mappings_[SDLK_SPACE] = InputAction::INTERACT;
     key_mappings_[SDLK_R] = InputAction::SWITCH_REALITY;
     key_mappings_[SDLK_TAB] = InputAction::SWITCH_REALITY;
     key_mappings_[SDLK_ESCAPE] = InputAction::PAUSE;

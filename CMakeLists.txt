@@ -56,6 +56,7 @@ set(SOURCES
     src/engine/InteractiveObstacles.cpp
     src/engine/InteractiveObstacleSystem.cpp
     src/engine/HUDSystem.cpp
+    src/engine/VerificationSystem.cpp
 )
 
 add_executable(${PROJECT_NAME} ${SOURCES})

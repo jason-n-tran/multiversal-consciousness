@@ -61,6 +61,10 @@ public:
     float get_x() const { return camera_x_; }
     
     float get_y() const { return camera_y_; }
+
+    int get_screen_width() const { return screen_width_; }
+
+    int get_screen_height() const { return screen_height_; }
     
     void set_bounds(const CameraBounds& bounds);
     

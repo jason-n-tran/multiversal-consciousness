@@ -1,0 +1,36 @@
+# Verification Scenario Test Level
+# Demonstrates Phase 2 gameplay systems with high wall requiring DoubleJump
+# Requirements: 6.1, 6.2, 6.3
+
+[info]
+name=Verification Scenario
+description=A test level demonstrating physics, abilities, and reality switching with a high wall obstacle requiring DoubleJump to traverse
+
+[agents]
+# Format: type,number,x,y,speed
+TestAgent,1,64,464,120
+
+[quantum_nodes]
+# Format: x,y,reality_a_item,reality_b_item,radius
+160,432,none,double_jump,40
+
+[environment]
+# Format: type,x,y,property1=value1,property2=value2
+# Left ground platform where agent starts
+wall,96,496,width=128,height=32,solid=true
+# Small step platform for quantum node (positioned at tile row 14 for clear visibility)
+wall,160,464,width=64,height=8,solid=true
+# Right platform after gap for success zone
+wall,320,496,width=128,height=32,solid=true
+# Left and right boundaries to prevent falling off
+wall,-16,320,width=32,height=640,solid=true
+wall,816,320,width=32,height=640,solid=true
+# Success detection area on right platform
+trigger,320,464,width=128,height=64,type=success_zone
+
+[conditions]
+# Format: type,target,value
+# Verification conditions
+agent_position,1,x>450
+agent_has_ability,1,double_jump
+reality_state,current,B

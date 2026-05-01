@@ -1,4 +1,5 @@
 #include "LevelLoader.h"
+#include "Components.h"
 #include <fstream>
 #include <sstream>
 #include <iostream>
@@ -360,6 +361,75 @@ EntityID LevelLoader::create_environment(const LevelEnvironment& env_data) {
         Renderable renderable;
         renderable.texture_id = "switch_texture";
         renderable.source_rect = {0, 0, 32, 32};
+        component_registry_->add_component(entity, std::move(renderable));
+    } else if (env_data.type == "wall") {
+        Wall wall;
+        auto it = env_data.properties.find("width");
+        if (it != env_data.properties.end()) {
+            wall.width = std::stof(it->second);
+        }
+        it = env_data.properties.find("height");
+        if (it != env_data.properties.end()) {
+            wall.height = std::stof(it->second);
+        }
+        it = env_data.properties.find("solid");
+        if (it != env_data.properties.end()) {
+            wall.is_solid = (it->second == "true");
+        }
+        it = env_data.properties.find("type");
+        if (it != env_data.properties.end()) {
+            wall.wall_type = it->second;
+        }
+        component_registry_->add_component(entity, std::move(wall));
+        
+        // Add BoundingBoxComponent for collision
+        BoundingBoxComponent bbox;
+        bbox.width = wall.width;
+        bbox.height = wall.height;
+        bbox.is_solid = wall.is_solid;
+        component_registry_->add_component(entity, std::move(bbox));
+        
+        // Add renderable
+        Renderable renderable;
+        renderable.texture_id = "wall_texture";
+        renderable.source_rect = {0, 0, static_cast<int>(wall.width), static_cast<int>(wall.height)};
+        renderable.color_r = 0.6f;
+        renderable.color_g = 0.6f;
+        renderable.color_b = 0.6f; // Gray color for walls
+        component_registry_->add_component(entity, std::move(renderable));
+        
+    } else if (env_data.type == "trigger") {
+        Trigger trigger;
+        auto it = env_data.properties.find("width");
+        if (it != env_data.properties.end()) {
+            trigger.width = std::stof(it->second);
+        }
+        it = env_data.properties.find("height");
+        if (it != env_data.properties.end()) {
+            trigger.height = std::stof(it->second);
+        }
+        it = env_data.properties.find("type");
+        if (it != env_data.properties.end()) {
+            trigger.trigger_type = it->second;
+        }
+        component_registry_->add_component(entity, std::move(trigger));
+        
+        // Add BoundingBoxComponent for trigger detection
+        BoundingBoxComponent bbox;
+        bbox.width = trigger.width;
+        bbox.height = trigger.height;
+        bbox.is_solid = false;
+        bbox.is_trigger = true;
+        component_registry_->add_component(entity, std::move(bbox));
+        
+        // Add renderable (invisible for triggers, but useful for debugging)
+        Renderable renderable;
+        renderable.texture_id = "trigger_texture";
+        renderable.source_rect = {0, 0, static_cast<int>(trigger.width), static_cast<int>(trigger.height)};
+        renderable.color_r = 0.0f;
+        renderable.color_g = 1.0f;
+        renderable.color_b = 0.0f; // Green color for triggers
+        renderable.color_a = 0.3f; // Semi-transparent
         component_registry_->add_component(entity, std::move(renderable));
     }
     

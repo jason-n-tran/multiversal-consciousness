@@ -89,7 +89,8 @@ struct PhysicsComponent {
     float velocity_y{0.0f};          
     float acceleration_x{0.0f};      
     float acceleration_y{980.0f};   
-    float mass{1.0f};                
+    float mass{1.0f};              
+    bool has_double_jumped{false};   
     bool is_grounded{false};        
     bool apply_gravity{true};     
     float friction{0.8f};         
@@ -120,4 +121,21 @@ struct InteractableComponent {
     float interaction_radius{48.0f};                            
     std::string interaction_text{"Press E to interact"};        
     EntityID linked_entity{0};                                  
+};
+
+struct Wall {
+    float width{32.0f};               
+    float height{32.0f};              
+    bool is_solid{true};              
+    bool is_climbable{false};         
+    std::string wall_type{"standard"}; 
+};
+
+struct Trigger {
+    float width{32.0f};              
+    float height{32.0f};          
+    std::string trigger_type{"generic"}; 
+    bool is_active{true};             
+    bool has_been_triggered{false};   
+    EntityID triggering_entity{0};   
 };
