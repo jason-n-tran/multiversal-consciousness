@@ -18,4 +18,6 @@ public:
     virtual std::string get_interaction_prompt() const = 0;
     
     virtual float get_interaction_radius() const = 0;
+
+    virtual std::string get_feedback_message() const { return ""; }
 };

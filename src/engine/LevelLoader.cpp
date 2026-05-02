@@ -3,34 +3,45 @@
 #include <fstream>
 #include <sstream>
 #include <iostream>
+#include <cctype>
 
 LevelLoader::LevelLoader(EntityManager* entity_manager, ComponentRegistry* component_registry)
     : entity_manager_(entity_manager), component_registry_(component_registry) {
 }
 
+#include <SDL3/SDL.h>
+
 LevelData LevelLoader::load_level_from_file(const std::string& filename) {
     LevelData level_data;
     
+    size_t data_size = 0;
+    void* file_data = SDL_LoadFile(filename.c_str(), &data_size);
     
-    std::ifstream file(filename);
-    if (!file.is_open()) {
-        std::cerr << "Failed to open level file: " << filename << std::endl;
+    if (!file_data) {
+        std::cerr << "Failed to open level file: " << filename << " (SDL Error: " << SDL_GetError() << ")" << std::endl;
         return level_data;
     }
     
+    std::string content(static_cast<char*>(file_data), data_size);
+    SDL_free(file_data);
     
+    std::cout << "LevelLoader: Successfully loaded file " << filename << " (" << data_size << " bytes)" << std::endl;
+    
+    std::stringstream file(content);
     std::string line;
     std::string current_section;
     std::stringstream section_data;
     
     while (std::getline(file, line)) {
+        while (!line.empty() && std::isspace(line.back())) {
+            line.pop_back();
+        }
         
         if (line.empty() || line[0] == '#') {
             continue;
         }
         
         if (line[0] == '[' && line.back() == ']') {
-            
             if (!current_section.empty()) {
                 if (current_section == "info") {
                     std::string info_data = section_data.str();
@@ -81,10 +92,18 @@ LevelData LevelLoader::load_level_from_file(const std::string& filename) {
             level_data.environment = parse_environment(section_data.str());
         } else if (current_section == "conditions") {
             level_data.completion_conditions = parse_conditions(section_data.str());
+        } else if (current_section == "info") {
+            std::string info_data = section_data.str();
+            size_t name_pos = info_data.find("name=");
+            if (name_pos != std::string::npos) {
+                size_t start = name_pos + 5;
+                size_t end = info_data.find('\n', start);
+                if (end == std::string::npos) end = info_data.length();
+                level_data.name = info_data.substr(start, end - start);
+            }
         }
     }
     
-    file.close();
     return level_data;
 }
 
@@ -256,8 +275,8 @@ EntityID LevelLoader::create_agent(const LevelAgent& agent_data) {
     EntityID entity = entity_manager_->create_entity();
     
     Transform transform;
-    transform.x = agent_data.x;
-    transform.y = agent_data.y;
+    transform.x = agent_data.x * 32.0f + 16.0f;
+    transform.y = agent_data.y * 32.0f + 16.0f;
     component_registry_->add_component(entity, std::move(transform));
     
     Agent agent;
@@ -283,8 +302,8 @@ EntityID LevelLoader::create_quantum_node(const LevelQuantumNode& node_data) {
     EntityID entity = entity_manager_->create_entity();
     
     Transform transform;
-    transform.x = node_data.x;
-    transform.y = node_data.y;
+    transform.x = node_data.x * 32.0f + 16.0f; 
+    transform.y = node_data.y * 32.0f + 16.0f; 
     component_registry_->add_component(entity, std::move(transform));
     
     QuantumNode quantum_node;
@@ -308,8 +327,22 @@ EntityID LevelLoader::create_environment(const LevelEnvironment& env_data) {
     EntityID entity = entity_manager_->create_entity();
     
     Transform transform;
-    transform.x = env_data.x;
-    transform.y = env_data.y;
+    
+    float element_width = 32.0f; 
+    float element_height = 32.0f; 
+    
+    auto it_w = env_data.properties.find("width");
+    if (it_w != env_data.properties.end()) {
+        element_width = std::stof(it_w->second) * 32.0f; 
+    }
+    auto it_h = env_data.properties.find("height");
+    if (it_h != env_data.properties.end()) {
+        element_height = std::stof(it_h->second) * 32.0f; 
+    }
+    
+    transform.x = env_data.x * 32.0f + element_width * 0.5f;
+    transform.y = env_data.y * 32.0f + element_height * 0.5f;
+    
     component_registry_->add_component(entity, std::move(transform));
     
     if (env_data.type == "door") {
@@ -324,6 +357,20 @@ EntityID LevelLoader::create_environment(const LevelEnvironment& env_data) {
         }
         component_registry_->add_component(entity, std::move(door));
         
+        InteractableComponent interactable;
+        interactable.type = InteractionType::Door;
+        interactable.required_ability = AbilityType::Keycard;
+        interactable.is_active = door.is_locked; 
+        interactable.interaction_radius = 48.0f;
+        interactable.interaction_text = "Press E to unlock door (requires Keycard)";
+        component_registry_->add_component(entity, std::move(interactable));
+        
+        BoundingBoxComponent door_bbox;
+        door_bbox.width = 32.0f;
+        door_bbox.height = 32.0f;
+        door_bbox.is_solid = door.is_locked; 
+        component_registry_->add_component(entity, std::move(door_bbox));
+        
         Renderable renderable;
         renderable.texture_id = "door_texture";
         renderable.source_rect = {0, 0, 32, 64};
@@ -337,6 +384,13 @@ EntityID LevelLoader::create_environment(const LevelEnvironment& env_data) {
             water.target_level = water.current_level;
         }
         component_registry_->add_component(entity, std::move(water));
+        
+        BoundingBoxComponent water_bbox;
+        water_bbox.width = 32.0f;
+        water_bbox.height = 32.0f;
+        water_bbox.is_solid = false; 
+        water_bbox.is_trigger = true; 
+        component_registry_->add_component(entity, std::move(water_bbox));
         
         Renderable renderable;
         renderable.texture_id = "water_texture";
@@ -358,19 +412,39 @@ EntityID LevelLoader::create_environment(const LevelEnvironment& env_data) {
         }
         component_registry_->add_component(entity, std::move(env_switch));
         
+        InteractableComponent interactable;
+        interactable.type = InteractionType::Switch;
+        interactable.required_ability = AbilityType::None; 
+        interactable.is_active = true;
+        interactable.interaction_radius = 48.0f;
+        interactable.interaction_text = "Press E to activate switch";
+        component_registry_->add_component(entity, std::move(interactable));
+        
+        BoundingBoxComponent switch_bbox;
+        switch_bbox.width = 32.0f;
+        switch_bbox.height = 32.0f;
+        switch_bbox.is_solid = false; 
+        switch_bbox.is_trigger = true; 
+        component_registry_->add_component(entity, std::move(switch_bbox));
+        
         Renderable renderable;
         renderable.texture_id = "switch_texture";
         renderable.source_rect = {0, 0, 32, 32};
         component_registry_->add_component(entity, std::move(renderable));
+        
     } else if (env_data.type == "wall") {
         Wall wall;
         auto it = env_data.properties.find("width");
         if (it != env_data.properties.end()) {
-            wall.width = std::stof(it->second);
+            wall.width = std::stof(it->second) * 32.0f; 
+        } else {
+            wall.width = 32.0f; 
         }
         it = env_data.properties.find("height");
         if (it != env_data.properties.end()) {
-            wall.height = std::stof(it->second);
+            wall.height = std::stof(it->second) * 32.0f; 
+        } else {
+            wall.height = 32.0f; 
         }
         it = env_data.properties.find("solid");
         if (it != env_data.properties.end()) {
@@ -380,33 +454,72 @@ EntityID LevelLoader::create_environment(const LevelEnvironment& env_data) {
         if (it != env_data.properties.end()) {
             wall.wall_type = it->second;
         }
+        
+        std::string wall_type = wall.wall_type;
+        float wall_width = wall.width;
+        float wall_height = wall.height;
+        bool wall_is_solid = wall.is_solid;
+        
         component_registry_->add_component(entity, std::move(wall));
         
         // Add BoundingBoxComponent for collision
         BoundingBoxComponent bbox;
-        bbox.width = wall.width;
-        bbox.height = wall.height;
-        bbox.is_solid = wall.is_solid;
+        bbox.width = wall_width;
+        bbox.height = wall_height;
+        bbox.is_solid = wall_is_solid;
         component_registry_->add_component(entity, std::move(bbox));
+        
+        if (wall_type == "tree") {
+            InteractableComponent interactable;
+            interactable.type = InteractionType::Tree;
+            interactable.required_ability = AbilityType::Axe;
+            interactable.is_active = true;
+            interactable.interaction_radius = 48.0f;
+            interactable.interaction_text = "Press E to chop tree (requires Axe)";
+            component_registry_->add_component(entity, std::move(interactable));
+            
+        }
         
         // Add renderable
         Renderable renderable;
-        renderable.texture_id = "wall_texture";
-        renderable.source_rect = {0, 0, static_cast<int>(wall.width), static_cast<int>(wall.height)};
-        renderable.color_r = 0.6f;
-        renderable.color_g = 0.6f;
-        renderable.color_b = 0.6f; // Gray color for walls
+        if (wall_type == "tree") {
+            renderable.texture_id = "tree_texture";
+            renderable.color_r = 0.4f;
+            renderable.color_g = 0.8f;
+            renderable.color_b = 0.2f; 
+        } else if (wall_type == "ground") {
+            renderable.texture_id = "ground_texture";
+            renderable.color_r = 1.0f;
+            renderable.color_g = 1.0f;
+            renderable.color_b = 1.0f; 
+        } else if (wall_type == "phaseable") {
+            renderable.texture_id = "phaseable_texture";
+            renderable.color_r = 0.3f;
+            renderable.color_g = 0.9f;
+            renderable.color_b = 0.9f; 
+            renderable.color_a = 0.6f; 
+        } else {
+            renderable.texture_id = "wall_texture";
+            renderable.color_r = 0.6f;
+            renderable.color_g = 0.6f;
+            renderable.color_b = 0.6f;
+        }
+        renderable.source_rect = {0, 0, static_cast<int>(wall_width), static_cast<int>(wall_height)};
         component_registry_->add_component(entity, std::move(renderable));
         
     } else if (env_data.type == "trigger") {
         Trigger trigger;
         auto it = env_data.properties.find("width");
         if (it != env_data.properties.end()) {
-            trigger.width = std::stof(it->second);
+            trigger.width = std::stof(it->second) * 32.0f; 
+        } else {
+            trigger.width = 32.0f; 
         }
         it = env_data.properties.find("height");
         if (it != env_data.properties.end()) {
-            trigger.height = std::stof(it->second);
+            trigger.height = std::stof(it->second) * 32.0f; 
+        } else {
+            trigger.height = 32.0f; 
         }
         it = env_data.properties.find("type");
         if (it != env_data.properties.end()) {

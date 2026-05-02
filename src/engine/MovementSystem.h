@@ -20,6 +20,8 @@ private:
 
     bool handle_jumping(EntityID entity, PhysicsComponent* physics, Agent* agent, bool jump_pressed);
     
+    void handle_dash_ability(EntityID entity, PhysicsComponent* physics, Agent* agent, float move_direction);
+    
 public:
     MovementSystem() = default;
     

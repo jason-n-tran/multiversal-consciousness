@@ -24,6 +24,7 @@ private:
     RendererPtr renderer_;
     bool is_running_;
     bool is_initialized_;
+    bool is_paused_ = false;
     std::unique_ptr<EntityManager> entity_manager_;
     std::unique_ptr<ComponentRegistry> component_registry_;
     std::unique_ptr<SystemManager> system_manager_;

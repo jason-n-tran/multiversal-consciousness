@@ -3,6 +3,7 @@
 #include "RealitySystem.h"
 #include <algorithm>
 #include <cmath>
+#include <iostream>
 
 QuantumLoadoutSystem::QuantumLoadoutSystem() 
     : ability_registry_(std::make_unique<AbilityRegistry>()) {
@@ -273,4 +274,11 @@ std::string QuantumLoadoutSystem::get_reality_key(Reality reality) const {
 }
 
 void QuantumLoadoutSystem::initialize_default_abilities() {
+}
+
+void QuantumLoadoutSystem::reset() {
+    reality_loadouts_["A"].clear();
+    reality_loadouts_["B"].clear();
+    ability_cooldowns_.clear();
+    std::cout << "Quantum Loadout System reset" << std::endl;
 }

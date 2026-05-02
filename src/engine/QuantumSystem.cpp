@@ -7,8 +7,8 @@
 #include <limits>
 #include <iostream>
 
-QuantumSystem::QuantumSystem(std::unique_ptr<RealityManager> reality_manager)
-    : reality_manager_(std::move(reality_manager)) {
+QuantumSystem::QuantumSystem(RealityManager* reality_manager)
+    : reality_manager_(reality_manager) {
     if (!reality_manager_) {
         throw std::invalid_argument("RealityManager cannot be null");
     }
@@ -147,6 +147,7 @@ bool QuantumSystem::trigger_quantum_node(EntityID node_entity, EntityID agent_en
     
     const QuantumNode* quantum_node = component_registry_->get_component<QuantumNode>(node_entity);
     if (quantum_node && quantum_node->is_activated) {
+        return false; 
     }
     Reality current_reality = reality_manager_->get_current_reality();
     pending_interactions_.emplace(node_entity, agent_entity, current_reality);
@@ -161,6 +162,7 @@ bool QuantumSystem::is_agent_in_range(EntityID node_entity, EntityID agent_entit
     }
     float distance = calculate_distance(node_entity, agent_entity);
     if (distance < 0.0f) {
+        return false; 
     }
     
     return distance <= quantum_node->interaction_radius;
@@ -194,7 +196,13 @@ void QuantumSystem::process_quantum_distribution(const QuantumInteraction& inter
     if (!quantum_node) {
         return;
     }
-
+    
+    Agent* agent = component_registry_->get_component<Agent>(interaction.agent_entity);
+    bool is_first_ability = false;
+    if (agent && agent->position_linked) {
+        is_first_ability = true;
+    }
+    
     if (!component_registry_->has_component<LoadoutComponent>(interaction.agent_entity)) {
         LoadoutComponent loadout;
         component_registry_->add_component<LoadoutComponent>(interaction.agent_entity, loadout);
@@ -213,6 +221,15 @@ void QuantumSystem::process_quantum_distribution(const QuantumInteraction& inter
         
         if (ability_b != AbilityType::None) {
             loadout_system_->assign_ability(interaction.agent_entity, ability_b, Reality::B);
+        }
+    }
+    
+    if (is_first_ability && agent) {
+        const Transform* current_transform = component_registry_->get_component<Transform>(interaction.agent_entity);
+        if (current_transform) {
+            agent->position_linked = false;
+            
+            reality_manager_->unlink_agent_position(interaction.agent_entity, *current_transform);
         }
     }
     
@@ -290,7 +307,6 @@ void QuantumSystem::trigger_interaction_for_agent(EntityID agent_entity) {
         return;
     }
     
-    // Get all quantum nodes
     const auto* quantum_container = component_registry_->get_all_components<QuantumNode>();
     if (!quantum_container) {
         return;
@@ -298,7 +314,6 @@ void QuantumSystem::trigger_interaction_for_agent(EntityID agent_entity) {
     
     const auto& node_entities = quantum_container->get_entities();
     
-    // Find the closest quantum node within interaction range
     EntityID closest_node = 0;
     float closest_distance = std::numeric_limits<float>::max();
     
@@ -316,7 +331,6 @@ void QuantumSystem::trigger_interaction_for_agent(EntityID agent_entity) {
         }
     }
     
-    // Trigger interaction with the closest node if found
     if (closest_node != 0) {
         if (trigger_quantum_node(closest_node, agent_entity)) {
             std::cout << "Triggered quantum interaction between agent " << agent_entity 
@@ -326,8 +340,6 @@ void QuantumSystem::trigger_interaction_for_agent(EntityID agent_entity) {
 }
 
 AbilityType QuantumSystem::convert_item_to_ability(const std::string& item_name) const {
-    // Map item names to ability types
-    // This mapping defines how quantum node items translate to abilities
     static const std::unordered_map<std::string, AbilityType> item_to_ability_map = {
         {"axe", AbilityType::Axe},
         {"Axe", AbilityType::Axe},

@@ -1,0 +1,97 @@
+# Comprehensive Abilities & Obstacles Demonstration Level
+# Showcases ALL implemented abilities, obstacles, and interactive elements
+# Demonstrates dual reality mechanics, quantum nodes, environmental elements, and agent coordination
+# Coordinate system: Each unit = 1 tile (32x32 pixels), origin at top-left (0,0)
+
+[info]
+name=Complete Abilities & Obstacles Demo
+description=Comprehensive demonstration of all abilities (Axe, Keycard, DoubleJump, Dash, WaterWalk, PhaseShift), interactive obstacles (Trees, Doors, Chasms), environmental elements (Water, Switches), and dual reality quantum mechanics
+
+[agents]
+# Format: type,number,x,y,speed (coordinates in tiles)
+# Multiple agents to demonstrate coordination and different abilities
+TestAgent,1,2,10,140
+
+[quantum_nodes]
+# Format: x,y,reality_a_item,reality_b_item,radius (coordinates in tiles, radius in pixels)
+# Quantum nodes demonstrating all ability types across both realities
+# Node 1: Axe vs Keycard - demonstrates tool-based abilities
+2,16,axe,none,45
+# Node 2: DoubleJump vs Dash - demonstrates movement abilities
+10,16,phase_shift,none,45
+6,16,keycard,none,45
+25,16,double_jump,none,45
+# Node 3: WaterWalk vs PhaseShift - demonstrates environmental abilities
+17,16,water_walk,none,45
+
+[environment]
+# Format: type,x,y,property1=value1,property2=value2 (coordinates in tiles, dimensions in tiles)
+
+# === STARTING AREA ===
+# Main ground platform where agents start - split to create water gap
+# Left section of ground platform (from x=2 to x=21)
+wall,1,18,width=17,height=1,solid=true,type=ground
+# Right section of ground platform (from x=25 to x=26) 
+wall,25,18,width=3,height=1,solid=true,type=ground
+# Boundary walls to contain the level
+wall,0,10,width=1,height=15,solid=true
+wall,33,10,width=1,height=15,solid=true
+
+# === AXE DEMONSTRATION SECTION ===
+# Tree obstacles requiring Axe ability (Reality A)
+# Tree 1 - blocking path to next section
+wall,4,14,width=1,height=4,solid=true,type=tree
+
+# === KEYCARD DEMONSTRATION SECTION ===
+# Locked doors requiring Keycard ability (Reality B)
+# Door 1 - main passage
+door,8,17,locked=true,required_key=keycard
+door,16,17,locked=true,required_key=keycard
+
+# === DOUBLE JUMP DEMONSTRATION SECTION ===
+# High walls and gaps requiring DoubleJump ability
+# High wall obstacle (2 tiles high)
+wall,8,16,width=1,height=1,solid=true
+wall,16,16,width=1,height=1,solid=true
+wall,26,16,width=1,height=2,solid=true
+
+# === WATER WALK DEMONSTRATION SECTION ===
+# Water obstacles requiring WaterWalk ability
+# Create a gap in the ground platform for water
+# Water section 1 - shallow water (positioned below ground level)
+water,18,18,level=32
+water,19,18,level=32
+water,20,18,level=32
+water,21,18,level=32
+water,22,18,level=32
+water,23,18,level=32
+water,24,18,level=32
+water,28,18,level=32
+water,29,18,level=32
+water,30,18,level=32
+water,31,18,level=32
+water,32,18,level=32
+
+# === PHASE SHIFT DEMONSTRATION SECTION ===
+# Solid barriers that can be passed through with PhaseShift
+# Barrier 1 - thin wall that can be phased through
+wall,12,14,width=1,height=4,solid=true,type=phaseable
+
+# === TRIGGER ZONES FOR TESTING ===
+# Success zones to test completion conditions
+trigger,32,17,width=1,height=1,type=success_zone
+
+# === ENVIRONMENTAL SWITCHES DEMONSTRATION ===
+# Switches that control doors and water levels across realities
+# Switch 1 - controls all doors (since we don't have specific ID matching yet)
+switch,14,16,target_type=door,target_id=all_doors
+# Switch 2 - controls all water levels (since we don't have specific ID matching yet)
+switch,26,15,target_type=water,target_id=all_water
+
+[conditions]
+# Format: type,target,value
+# Comprehensive verification conditions testing all systems
+
+agent_position,1,x>1000
+agent_has_ability,1,double_jump
+trigger_activated,success_zone,true

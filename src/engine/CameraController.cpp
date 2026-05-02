@@ -44,8 +44,23 @@ void CameraController::apply_bounds(float& x, float& y) const {
     float half_screen_width = screen_width_ * 0.5f;
     float half_screen_height = screen_height_ * 0.5f;
     
-    x = std::clamp(x, bounds_.min_x + half_screen_width, bounds_.max_x - half_screen_width);
-    y = std::clamp(y, bounds_.min_y + half_screen_height, bounds_.max_y - half_screen_height);
+    float limit_min_x = bounds_.min_x + half_screen_width;
+    float limit_max_x = bounds_.max_x - half_screen_width;
+    
+    if (limit_min_x > limit_max_x) {
+        x = (bounds_.min_x + bounds_.max_x) * 0.5f;
+    } else {
+        x = std::clamp(x, limit_min_x, limit_max_x);
+    }
+    
+    float limit_min_y = bounds_.min_y + half_screen_height;
+    float limit_max_y = bounds_.max_y - half_screen_height;
+    
+    if (limit_min_y > limit_max_y) {
+        y = (bounds_.min_y + bounds_.max_y) * 0.5f;
+    } else {
+        y = std::clamp(y, limit_min_y, limit_max_y);
+    }
 }
 
 void CameraController::set_target_entity(std::optional<EntityID> entity) {

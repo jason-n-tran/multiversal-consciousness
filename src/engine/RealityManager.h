@@ -19,6 +19,7 @@ private:
     
     std::array<std::unordered_map<EntityID, Inventory>, 2> reality_inventories_;
     std::array<std::unordered_map<EntityID, QuantumNode>, 2> reality_quantum_nodes_;
+    std::array<std::unordered_map<EntityID, Transform>, 2> reality_transforms_;
     
     std::unordered_map<EntityID, Transform> shared_geometry_;
     
@@ -50,6 +51,14 @@ public:
     
     const Transform* get_shared_geometry(EntityID entity) const;
     
+    void unlink_agent_position(EntityID entity, const Transform& current_transform);
+    
+    bool is_position_linked(EntityID entity) const;
+    
+    const Transform* get_reality_transform(EntityID entity, Reality reality) const;
+    
+    void set_reality_transform(EntityID entity, const Transform& transform, Reality reality);
+    
     const Inventory* get_reality_inventory(EntityID entity, Reality reality = Reality::A) const;
     
     void set_reality_inventory(EntityID entity, const Inventory& inventory, Reality reality = Reality::A);
@@ -72,6 +81,8 @@ public:
     
     void remove_entity(EntityID entity);
     
+    void reset();
+
     std::chrono::milliseconds get_time_since_last_switch() const;
     
     bool last_switch_within_performance_limit() const;

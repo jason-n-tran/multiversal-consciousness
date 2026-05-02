@@ -24,8 +24,11 @@ void SystemManager::initialize() {
     is_initialized_ = true;
 }
 
-void SystemManager::update(float delta_time) {
+void SystemManager::update(float delta_time, bool is_paused) {
     for (auto& system : systems_) {
+        if (is_paused && !system->run_while_paused()) {
+            continue;
+        }
         system->update(delta_time);
     }
 }

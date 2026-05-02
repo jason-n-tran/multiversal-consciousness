@@ -1,9 +1,15 @@
 #include "HUDSystem.h"
 #include <algorithm>
 #include <cmath>
+#include <iostream>
 
 void HUDSystem::initialize(EntityManager& entity_manager, ComponentRegistry& component_registry) {
     ISystem::initialize(entity_manager, component_registry);
+    
+    if (!initialize_fonts()) {
+        std::cerr << "Failed to initialize fonts for HUD system" << std::endl;
+        return;
+    }
     
     current_agent_number_ = 0;
     current_abilities_.clear();
@@ -13,10 +19,19 @@ void HUDSystem::initialize(EntityManager& entity_manager, ComponentRegistry& com
     ability_alpha_ = 1.0f;
     update_animation_timer_ = 0.0f;
     needs_update_ = true;
+    
+    std::cout << "HUD System initialized with SDL_ttf" << std::endl;
 }
 
 void HUDSystem::update(float delta_time) {
     update_animations(delta_time);
+    
+    if (verification_message_timer_ > 0.0f) {
+        verification_message_timer_ -= delta_time;
+        if (verification_message_timer_ <= 0.0f) {
+            verification_message_.clear();
+        }
+    }
     
     if (needs_update_ || has_state_changed()) {
         update_display_state();
@@ -25,19 +40,182 @@ void HUDSystem::update(float delta_time) {
 }
 
 void HUDSystem::render(SDL_Renderer* renderer) {
-    if (!renderer) {
+    if (!renderer || !ttf_initialized_) {
         return;
     }
     
     render_agent_number(renderer);
     
     render_abilities(renderer);
+    
+    render_verification_message(renderer);
 }
 
 void HUDSystem::shutdown() {
+    cleanup_fonts();
     possession_system_ = nullptr;
     loadout_system_ = nullptr;
     reality_manager_ = nullptr;
+}
+
+bool HUDSystem::initialize_fonts() {
+    if (!TTF_WasInit() && !TTF_Init()) {
+        std::cerr << "TTF_Init failed: " << SDL_GetError() << std::endl;
+        return false;
+    }
+    
+    ttf_initialized_ = true;
+    
+    const char* font_paths[] = {
+        "assets/arial.ttf",
+        "assets/ARIAL.TTF",
+        "arial.ttf",
+        "ARIAL.TTF",
+        // Windows
+        "C:/Windows/Fonts/arial.ttf",
+        "C:/Windows/Fonts/calibri.ttf",
+        // Linux
+        "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
+        "/usr/share/fonts/TTF/arial.ttf",
+        // macOS
+        "/System/Library/Fonts/Arial.ttf",
+        "/System/Library/Fonts/Helvetica.ttc",
+        "font.ttf"
+    };
+    
+    const char* font_path = nullptr;
+    for (const char* path : font_paths) {
+        font_large_ = TTF_OpenFont(path, 24);
+        if (font_large_) {
+            font_path = path;
+            std::cout << "HUDSystem: Loaded font from " << path << std::endl;
+            break;
+        }
+    }
+    
+    if (!font_large_) {
+        std::cerr << "Failed to load any font. Please ensure a TrueType font is available." << std::endl;
+        std::cerr << "You can place arial.ttf or font.ttf in the project directory." << std::endl;
+        cleanup_fonts();
+        return false;
+    }
+    
+    font_medium_ = TTF_OpenFont(font_path, 18);
+    font_small_ = TTF_OpenFont(font_path, 14);
+    
+    if (!font_medium_ || !font_small_) {
+        std::cerr << "Failed to load all font sizes" << std::endl;
+        cleanup_fonts();
+        return false;
+    }
+    
+    std::cout << "Fonts loaded successfully from: " << font_path << std::endl;
+    return true;
+}
+
+void HUDSystem::cleanup_fonts() {
+    if (font_large_) {
+        TTF_CloseFont(font_large_);
+        font_large_ = nullptr;
+    }
+    if (font_medium_) {
+        TTF_CloseFont(font_medium_);
+        font_medium_ = nullptr;
+    }
+    if (font_small_) {
+        TTF_CloseFont(font_small_);
+        font_small_ = nullptr;
+    }
+    
+    if (ttf_initialized_) {
+        TTF_Quit();
+        ttf_initialized_ = false;
+    }
+}
+
+float HUDSystem::render_text(SDL_Renderer* renderer, const std::string& text, TTF_Font* font,
+                            float x, float y, const SDL_FColor& color) {
+    if (!font || text.empty()) {
+        return 0.0f;
+    }
+    
+    SDL_Color sdl_color = {
+        static_cast<Uint8>(color.r * 255),
+        static_cast<Uint8>(color.g * 255),
+        static_cast<Uint8>(color.b * 255),
+        static_cast<Uint8>(color.a * 255)
+    };
+    
+    SDL_Surface* text_surface = TTF_RenderText_Blended_Wrapped(font, text.c_str(), text.length(), sdl_color, 0);
+    if (!text_surface) {
+        std::cerr << "Failed to create text surface: " << SDL_GetError() << std::endl;
+        return 0.0f;
+    }
+    
+    SDL_Texture* text_texture = SDL_CreateTextureFromSurface(renderer, text_surface);
+    if (!text_texture) {
+        std::cerr << "Failed to create text texture: " << SDL_GetError() << std::endl;
+        SDL_DestroySurface(text_surface);
+        return 0.0f;
+    }
+    
+    int text_width = text_surface->w;
+    int text_height = text_surface->h;
+    
+    SDL_DestroySurface(text_surface);
+    
+    SDL_FRect dest_rect = {x, y, static_cast<float>(text_width), static_cast<float>(text_height)};
+    SDL_RenderTexture(renderer, text_texture, nullptr, &dest_rect);
+    
+    SDL_DestroyTexture(text_texture);
+    
+    return static_cast<float>(text_height);
+}
+
+float HUDSystem::render_text_with_background(SDL_Renderer* renderer, const std::string& text, TTF_Font* font,
+                                            float x, float y, const SDL_FColor& text_color, const SDL_FColor& bg_color) {
+    if (!font || text.empty()) {
+        return 0.0f;
+    }
+    
+    SDL_Color sdl_color = {
+        static_cast<Uint8>(text_color.r * 255),
+        static_cast<Uint8>(text_color.g * 255),
+        static_cast<Uint8>(text_color.b * 255),
+        static_cast<Uint8>(text_color.a * 255)
+    };
+
+    SDL_Surface* text_surface = TTF_RenderText_Blended_Wrapped(font, text.c_str(), text.length(), sdl_color, 800);
+    if (!text_surface) {
+        std::cerr << "Failed to create text surface: " << SDL_GetError() << std::endl;
+        return 0.0f;
+    }
+    
+    int text_width = text_surface->w;
+    int text_height = text_surface->h;
+
+    float panel_x = x - visual_config_.panel_padding;
+    float panel_y = y - visual_config_.panel_padding;
+    float panel_width = static_cast<float>(text_width) + (visual_config_.panel_padding * 2);
+    float panel_height = static_cast<float>(text_height) + (visual_config_.panel_padding * 2);
+    
+    render_panel(renderer, panel_x, panel_y, panel_width, panel_height, bg_color);
+    
+    SDL_Texture* text_texture = SDL_CreateTextureFromSurface(renderer, text_surface);
+    if (!text_texture) {
+        std::cerr << "Failed to create text texture: " << SDL_GetError() << std::endl;
+        SDL_DestroySurface(text_surface);
+        return 0.0f;
+    }
+
+    SDL_DestroySurface(text_surface);
+    
+    SDL_FRect dest_rect = {x, y, static_cast<float>(text_width), static_cast<float>(text_height)};
+    SDL_RenderTexture(renderer, text_texture, nullptr, &dest_rect);
+    
+    SDL_DestroyTexture(text_texture);
+
+    return static_cast<float>(text_height);
 }
 
 void HUDSystem::set_possession_system(PossessionSystem* possession_system) {
@@ -104,6 +282,10 @@ void HUDSystem::update_display_state() {
         current_agent_number_ = new_agent_number;
         current_abilities_ = std::move(new_abilities);
         current_reality_ = new_reality;
+        
+        std::cout << "HUD updated: Agent " << static_cast<int>(current_agent_number_) 
+                  << ", Reality " << (current_reality_ == Reality::A ? "A" : "B")
+                  << ", Abilities: " << current_abilities_.size() << std::endl;
     }
 }
 
@@ -119,10 +301,9 @@ void HUDSystem::render_agent_number(SDL_Renderer* renderer) {
     text_color.a *= agent_number_alpha_;
     bg_color.a *= agent_number_alpha_;
     
-    render_text_with_background(renderer, agent_text,
+    render_text_with_background(renderer, agent_text, font_large_,
                                visual_config_.agent_number_x,
                                visual_config_.agent_number_y,
-                               visual_config_.agent_number_font_size,
                                text_color, bg_color);
 }
 
@@ -145,10 +326,9 @@ void HUDSystem::render_abilities(SDL_Renderer* renderer) {
             text_color.a *= 0.6f;
         }
         
-        float text_height = render_text_with_background(renderer, ability_text,
+        float text_height = render_text_with_background(renderer, ability_text, font_medium_,
                                                        visual_config_.ability_x,
                                                        y_offset,
-                                                       visual_config_.ability_font_size,
                                                        text_color, bg_color);
         
         y_offset += text_height + visual_config_.ability_spacing;
@@ -160,27 +340,6 @@ void HUDSystem::render_panel(SDL_Renderer* renderer, float x, float y,
     SDL_FRect rect = {x, y, width, height};
     SDL_SetRenderDrawColorFloat(renderer, color.r, color.g, color.b, color.a);
     SDL_RenderFillRect(renderer, &rect);
-}
-
-float HUDSystem::render_text_with_background(SDL_Renderer* renderer, const std::string& text,
-                                            float x, float y, float font_size,
-                                            const SDL_FColor& text_color, const SDL_FColor& bg_color) {
-    float char_width = font_size * 0.6f;  
-    float text_width = text.length() * char_width;
-    float text_height = font_size;
-    
-    float panel_x = x - visual_config_.panel_padding;
-    float panel_y = y - visual_config_.panel_padding;
-    float panel_width = text_width + (visual_config_.panel_padding * 2);
-    float panel_height = text_height + (visual_config_.panel_padding * 2);
-    
-    render_panel(renderer, panel_x, panel_y, panel_width, panel_height, bg_color);
-    
-    SDL_FRect text_rect = {x, y, text_width, text_height};
-    SDL_SetRenderDrawColorFloat(renderer, text_color.r, text_color.g, text_color.b, text_color.a);
-    SDL_RenderFillRect(renderer, &text_rect);
-    
-    return text_height;
 }
 
 std::string HUDSystem::get_ability_display_name(AbilityType ability) const {
@@ -262,4 +421,30 @@ void HUDSystem::on_abilities_changed(EntityID agent_entity) {
             needs_update_ = true;
         }
     }
+}
+
+void HUDSystem::set_verification_message(const std::string& message, float duration) {
+    verification_message_ = message;
+    verification_message_timer_ = duration;
+}
+
+void HUDSystem::render_verification_message(SDL_Renderer* renderer) {
+    if (verification_message_.empty() || verification_message_timer_ <= 0.0f) {
+        return;
+    }
+    
+    float alpha = 1.0f;
+    if (verification_message_timer_ < 0.5f) {
+        alpha = verification_message_timer_ / 0.5f;
+    }
+    
+    float message_x = 400.0f; 
+    float message_y = 600.0f; 
+    
+    SDL_FColor text_color = {1.0f, 1.0f, 0.0f, alpha}; 
+    SDL_FColor bg_color = {0.0f, 0.0f, 0.0f, alpha * 0.8f}; 
+    
+    render_text_with_background(renderer, verification_message_, font_medium_,
+                               message_x, message_y,
+                               text_color, bg_color);
 }

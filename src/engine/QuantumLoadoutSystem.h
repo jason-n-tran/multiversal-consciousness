@@ -64,6 +64,8 @@ public:
     float get_ability_cooldown(EntityID agent_entity) const;
     
     void reset_ability_cooldown(EntityID agent_entity);
+
+    void reset();
     
 private:
     void update_cooldowns(float delta_time);

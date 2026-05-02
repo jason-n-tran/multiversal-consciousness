@@ -29,6 +29,7 @@ private:
     
     void resolve_entity_collisions(EntityID entity, const std::vector<CollisionInfo>& collisions);
     
+    bool can_move_through_water(EntityID agent_entity, EntityID water_entity) const;
 public:
     PhysicsSystem() = default;
     

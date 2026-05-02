@@ -72,7 +72,8 @@ CollisionInfo PhysicsSystem::check_collision(EntityID entity1, EntityID entity2)
     
     collision_info.has_collision = true;
     
-    if (overlap_x < overlap_y) {
+    const float SIDE_BIAS = 3.0f;
+    if (overlap_x < overlap_y + SIDE_BIAS) {
         collision_info.penetration_x = overlap_x;
         collision_info.penetration_y = 0.0f;
         
@@ -118,17 +119,6 @@ std::vector<CollisionInfo> PhysicsSystem::detect_collisions() const {
             
             CollisionInfo collision = check_collision(entity1, entity2);
             if (collision.has_collision) {
-                const PhysicsComponent* physics1 = component_registry_->get_component<PhysicsComponent>(entity1);
-                const PhysicsComponent* physics2 = component_registry_->get_component<PhysicsComponent>(entity2);
-                
-                if (physics1 || physics2) {
-                    const BoundingBoxComponent* bbox1 = component_registry_->get_component<BoundingBoxComponent>(entity1);
-                    const BoundingBoxComponent* bbox2 = component_registry_->get_component<BoundingBoxComponent>(entity2);
-                    std::cout << "Collision detected between entities " << entity1 << " and " << entity2;
-                    if (bbox1) std::cout << " (entity1 solid: " << bbox1->is_solid << ")";
-                    if (bbox2) std::cout << " (entity2 solid: " << bbox2->is_solid << ")";
-                    std::cout << std::endl;
-                }
                 
                 collision.other_entity = entity2;
                 collisions.push_back(collision);
@@ -159,8 +149,29 @@ void PhysicsSystem::resolve_collision_with_slide(EntityID entity, const Collisio
     }
     
     const BoundingBoxComponent* other_bbox = component_registry_->get_component<BoundingBoxComponent>(collision.other_entity);
-    if (!other_bbox || !other_bbox->is_solid) {
+    if (!other_bbox) {
         return; 
+    }
+    
+    if (!other_bbox->is_solid) {
+        const WaterLevel* water = component_registry_->get_component<WaterLevel>(collision.other_entity);
+        if (water) {
+            const LoadoutComponent* loadout = component_registry_->get_component<LoadoutComponent>(entity);
+            if (!loadout || loadout->current_ability != AbilityType::WaterWalk) {
+                return; 
+            }
+            
+        } else {
+            return; 
+        }
+    }
+    
+    const LoadoutComponent* loadout = component_registry_->get_component<LoadoutComponent>(entity);
+    if (loadout && loadout->current_ability == AbilityType::PhaseShift) {
+        const Wall* wall = component_registry_->get_component<Wall>(collision.other_entity);
+        if (wall && wall->wall_type == "phaseable") {
+            return;
+        }
     }
     
     const float MIN_PENETRATION = 0.1f;
@@ -168,16 +179,12 @@ void PhysicsSystem::resolve_collision_with_slide(EntityID entity, const Collisio
         return;
     }
     
-    std::cout << "Resolving collision: Entity " << entity << " with solid entity " << collision.other_entity 
-              << " penetration: (" << collision.penetration_x << ", " << collision.penetration_y << ")"
-              << " normal: (" << collision.normal_x << ", " << collision.normal_y << ")" << std::endl;
-    
     transform->x += collision.normal_x * collision.penetration_x;
     transform->y += collision.normal_y * collision.penetration_y;
     
     if (std::abs(collision.normal_x) > EPSILON) {
         if (collision.normal_x * physics->velocity_x > 0) {
-            physics->velocity_x = 0.0f; 
+            physics->velocity_x = 0.0f;
         }
     }
     
@@ -201,14 +208,28 @@ void PhysicsSystem::resolve_entity_collisions(EntityID entity, const std::vector
         return;
     }
     
-    PhysicsComponent* physics = component_registry_->get_component<PhysicsComponent>(entity);
-    if (physics) {
-        physics->is_grounded = false;
-    }
     
     for (const auto& collision : collisions) {
         resolve_collision_with_slide(entity, collision);
     }
+}
+
+bool PhysicsSystem::can_move_through_water(EntityID agent_entity, EntityID water_entity) const {
+    if (!component_registry_) {
+        return true; 
+    }
+    
+    const WaterLevel* water = component_registry_->get_component<WaterLevel>(water_entity);
+    if (!water) {
+        return true; 
+    }
+    
+    const LoadoutComponent* loadout = component_registry_->get_component<LoadoutComponent>(agent_entity);
+    if (!loadout) {
+        return false; 
+    }
+    
+    return loadout->current_ability == AbilityType::WaterWalk;
 }
 
 void PhysicsSystem::initialize(EntityManager& entity_manager, ComponentRegistry& component_registry) {
@@ -228,6 +249,17 @@ void PhysicsSystem::update(float delta_time) {
     }
     
     const auto& physics_entities = physics_container->get_entities();
+    
+    for (EntityID entity : physics_entities) {
+        if (!entity_manager_->is_valid(entity)) {
+            continue;
+        }
+        
+        PhysicsComponent* physics = component_registry_->get_component<PhysicsComponent>(entity);
+        if (physics) {
+            physics->is_grounded = false; 
+        }
+    }
     
     for (EntityID entity : physics_entities) {
         if (!entity_manager_->is_valid(entity)) {

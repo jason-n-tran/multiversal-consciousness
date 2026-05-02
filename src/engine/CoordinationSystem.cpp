@@ -2,8 +2,11 @@
 #include <algorithm>
 #include <cmath>
 
-CoordinationSystem::CoordinationSystem(std::unique_ptr<RealityManager> reality_manager)
-    : reality_manager_(std::move(reality_manager)) {
+CoordinationSystem::CoordinationSystem(RealityManager* reality_manager)
+    : reality_manager_(reality_manager) {
+    if (!reality_manager_) {
+        throw std::invalid_argument("RealityManager cannot be null");
+    }
     recent_actions_.reserve(MAX_ACTION_HISTORY);
     pending_effects_.reserve(50); 
 }

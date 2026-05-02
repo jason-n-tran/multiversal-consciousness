@@ -30,6 +30,8 @@ public:
     void update(float delta_time) override;
     
     void shutdown() override;
+    
+    void reset();
 
     RealityManager& get_reality_manager() { return *reality_manager_; }
     
@@ -47,6 +49,20 @@ public:
 
     void set_hud_system(HUDSystem* hud_system);
     
+private:
+    void save_current_reality_transforms();
+
+    void load_current_reality_transforms();
+
+    void save_current_reality_inventories();
+
+    void load_current_reality_inventories();
+
+    void save_current_reality_quantum_nodes();
+
+    void load_current_reality_quantum_nodes();
+    
+public:
     const Door* get_shared_door(EntityID entity) const;
     
     const WaterLevel* get_shared_water_level(EntityID entity) const;

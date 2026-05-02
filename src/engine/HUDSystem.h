@@ -39,11 +39,18 @@ private:
     HUDVisualConfig visual_config_;                             
     PossessionSystem* possession_system_{nullptr};              
     QuantumLoadoutSystem* loadout_system_{nullptr};             
-    RealityManager* reality_manager_{nullptr};                 
+    RealityManager* reality_manager_{nullptr};      
+    
+    TTF_Font* font_large_{nullptr};                             
+    TTF_Font* font_medium_{nullptr};                        
+    TTF_Font* font_small_{nullptr};                          
+    bool ttf_initialized_{false};   
     
     uint8_t current_agent_number_{0};                         
     std::vector<std::string> current_abilities_;             
-    Reality current_reality_{Reality::A};                   
+    Reality current_reality_{Reality::A};    
+    std::string verification_message_;                     
+    float verification_message_timer_{0.0f};                 
     
     float agent_number_alpha_{1.0f};                         
     float ability_alpha_{1.0f};                              
@@ -55,13 +62,26 @@ private:
     void render_agent_number(SDL_Renderer* renderer);
     
     void render_abilities(SDL_Renderer* renderer);
+
+    void render_verification_message(SDL_Renderer* renderer);
     
     void render_panel(SDL_Renderer* renderer, float x, float y, 
                      float width, float height, const SDL_FColor& color);
+
+    bool initialize_fonts();
+    
+    void cleanup_fonts();
+    
+    float render_text(SDL_Renderer* renderer, const std::string& text, TTF_Font* font,
+                     float x, float y, const SDL_FColor& color);
     
     float render_text_with_background(SDL_Renderer* renderer, const std::string& text,
                                      float x, float y, float font_size,
-                                     const SDL_FColor& text_color, const SDL_FColor& bg_color);
+                                     const SDL_FColor& text_color, const SDL_FColor& bg_color TTF_Font* font,
+                                     float x, float y, const SDL_FColor& text_color, const SDL_FColor& bg_color);
+
+    void render_simple_character(SDL_Renderer* renderer, char c, float x, float y, 
+                                float width, float height);
     
     std::string get_ability_display_name(AbilityType ability) const;
     
@@ -107,6 +127,8 @@ public:
     void on_reality_changed(Reality new_reality);
     
     void on_abilities_changed(EntityID agent_entity);
+
+    void set_verification_message(const std::string& message, float duration = 3.0f);
     
     uint8_t get_displayed_agent_number() const { return current_agent_number_; }
     

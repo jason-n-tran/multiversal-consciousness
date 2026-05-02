@@ -48,6 +48,7 @@ struct Agent {
     uint8_t agent_number{1};    
     bool is_possessed{false};    
     float movement_speed{100.0f}; 
+    bool position_linked{true}; 
 };
 
 struct Inventory {
@@ -82,6 +83,15 @@ struct EnvironmentalSwitch {
     std::string target_entity_type; 
     std::string target_entity_id; 
     bool requires_agent_presence{true}; 
+};
+
+struct InteractionPrompt {
+    std::string prompt_text;         
+    EntityID target_entity{0};      
+    bool is_visible{false};         
+    float display_duration{0.0f};   
+    float fade_in_time{0.2f};       
+    float fade_out_time{0.2f};      
 };
 
 struct PhysicsComponent {

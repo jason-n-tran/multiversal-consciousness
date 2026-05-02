@@ -4,6 +4,7 @@
 RealityManager::RealityManager() 
     : current_reality_(Reality::A)
     , last_switch_time_(std::chrono::steady_clock::now()) {
+    std::cout << "[RealityManager] Constructor called - this: " << static_cast<void*>(this) << std::endl;
 }
 
 bool RealityManager::switch_reality() {
@@ -33,6 +34,29 @@ void RealityManager::sync_shared_geometry(EntityID entity, const Transform& tran
 const Transform* RealityManager::get_shared_geometry(EntityID entity) const {
     auto it = shared_geometry_.find(entity);
     return (it != shared_geometry_.end()) ? &it->second : nullptr;
+}
+
+void RealityManager::unlink_agent_position(EntityID entity, const Transform& current_transform) {
+    shared_geometry_.erase(entity);
+    
+    reality_transforms_[static_cast<size_t>(Reality::A)][entity] = current_transform;
+    reality_transforms_[static_cast<size_t>(Reality::B)][entity] = current_transform;
+}
+
+bool RealityManager::is_position_linked(EntityID entity) const {
+    return reality_transforms_[static_cast<size_t>(Reality::A)].find(entity) == 
+           reality_transforms_[static_cast<size_t>(Reality::A)].end();
+}
+
+const Transform* RealityManager::get_reality_transform(EntityID entity, Reality reality) const {
+    const auto& reality_map = reality_transforms_[static_cast<size_t>(reality)];
+    auto it = reality_map.find(entity);
+    return (it != reality_map.end()) ? &it->second : nullptr;
+}
+
+void RealityManager::set_reality_transform(EntityID entity, const Transform& transform, Reality reality) {
+    size_t reality_index = static_cast<size_t>(reality);
+    reality_transforms_[reality_index][entity] = transform;
 }
 
 const Inventory* RealityManager::get_reality_inventory(EntityID entity, Reality reality) const {
@@ -86,6 +110,9 @@ const EnvironmentalSwitch* RealityManager::get_shared_switch(EntityID entity) co
 void RealityManager::remove_entity(EntityID entity) {
     shared_geometry_.erase(entity);
     
+    reality_transforms_[0].erase(entity);
+    reality_transforms_[1].erase(entity);
+    
     reality_inventories_[0].erase(entity);
     reality_inventories_[1].erase(entity);
     
@@ -104,4 +131,18 @@ std::chrono::milliseconds RealityManager::get_time_since_last_switch() const {
 
 bool RealityManager::last_switch_within_performance_limit() const {
     return get_time_since_last_switch() <= MAX_SWITCH_TIME;
+}
+
+void RealityManager::reset() {
+    current_reality_ = Reality::A;
+    shared_geometry_.clear();
+    reality_transforms_[0].clear();
+    reality_transforms_[1].clear();
+    reality_inventories_[0].clear();
+    reality_inventories_[1].clear();
+    reality_quantum_nodes_[0].clear();
+    reality_quantum_nodes_[1].clear();
+    shared_doors_.clear();
+    shared_water_levels_.clear();
+    shared_switches_.clear();
 }

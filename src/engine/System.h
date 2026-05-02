@@ -21,6 +21,8 @@ public:
     virtual void update(float delta_time) = 0;
     
     virtual void shutdown() {}
+
+    virtual bool run_while_paused() const { return false; }
     
 protected:
     EntityManager* entity_manager_ = nullptr;
@@ -108,7 +110,7 @@ public:
     
     void initialize();
     
-    void update(float delta_time);
+    void update(float delta_time, bool is_paused = false);
     
     void render(SDL_Renderer* renderer);
     

@@ -1,0 +1,121 @@
+# Comprehensive Abilities & Obstacles Demonstration Level
+# Showcases ALL implemented abilities, obstacles, and interactive elements
+# Demonstrates dual reality mechanics, quantum nodes, environmental elements, and agent coordination
+# Coordinate system: Each unit = 1 tile (32x32 pixels), origin at top-left (0,0)
+
+[info]
+name=Complete Abilities & Obstacles Demo
+description=Comprehensive demonstration of all abilities (Axe, Keycard, DoubleJump, Dash, WaterWalk, PhaseShift), interactive obstacles (Trees, Doors, Chasms), environmental elements (Water, Switches), and dual reality quantum mechanics
+
+[agents]
+# Format: type,number,x,y,speed (coordinates in tiles)
+# Multiple agents to demonstrate coordination and different abilities
+TestAgent,1,64,22,140
+TestAgent,2,2,29,140
+
+[quantum_nodes]
+# Format: x,y,reality_a_item,reality_b_item,radius (coordinates in tiles, radius in pixels)
+# Quantum nodes demonstrating all ability types across both realities
+# Node 1: Axe vs Keycard - demonstrates tool-based abilities
+2,28,keycard,double_jump,45
+# Node 2: DoubleJump vs Dash - demonstrates movement abilities
+4,2,axe,axe,45
+# Node 3: WaterWalk vs PhaseShift - demonstrates environmental abilities
+5,7,none,none,45
+64,21,phase_shift,water_walk,45
+
+[environment]
+
+wall,2,30,width=100,height=1,solid=true,type=ground
+wall,1,1,width=1,height=29,solid=true
+wall,66,1,width=1,height=29,solid=true
+wall,4,4,width=1,height=20,solid=true
+wall,4,24,width=5,height=1,solid=true,type=ground
+wall,9,24,width=91,height=1,solid=true,type=phaseable
+door,4,29,locked=true,required_key=keycard
+door,10,29,locked=true,required_key=keycard
+switch,7,29,target_type=door,target_id=all_doors
+water,6,28,level=32
+water,7,28,level=32
+water,8,28,level=32
+water,6,27,level=32
+water,7,27,level=32
+water,8,27,level=32
+wall,5,25,width=1,height=4,solid=true,type=phaseable
+wall,9,25,width=1,height=4,solid=true,type=phaseable
+trigger,6,25,width=1,height=1,type=success_zone
+wall,7,3,width=1,height=23,solid=true,type=tree
+wall,8,3,width=1,height=24,solid=true,type=tree
+wall,7,26,width=1,height=1,solid=true,type=tree
+wall,2,27,width=1,height=1,solid=true,type=ground
+wall,3,25,width=1,height=1,solid=true,type=ground
+wall,2,23,width=1,height=1,solid=true,type=ground
+wall,3,21,width=1,height=1,solid=true,type=ground
+wall,2,19,width=1,height=1,solid=true,type=ground
+wall,3,17,width=1,height=1,solid=true,type=ground
+wall,2,15,width=1,height=1,solid=true,type=ground
+wall,3,13,width=1,height=1,solid=true,type=ground
+wall,2,11,width=1,height=1,solid=true,type=ground
+wall,3,9,width=1,height=1,solid=true,type=ground
+wall,2,7,width=1,height=1,solid=true,type=ground
+wall,3,5,width=1,height=1,solid=true,type=ground
+wall,5,6,width=90,height=1,solid=true,type=phaseable
+wall,5,8,width=5,height=1,solid=true,type=ground
+wall,10,9,width=1,height=20,solid=true,type=tree
+wall,11,10,width=1,height=19,solid=true,type=tree
+wall,12,8,width=1,height=21,solid=true,type=tree
+wall,13,10,width=1,height=19,solid=true,type=tree
+wall,14,11,width=1,height=18,solid=true,type=tree
+wall,15,9,width=1,height=20,solid=true,type=tree
+wall,16,11,width=1,height=18,solid=true,type=tree
+wall,17,11,width=1,height=18,solid=true,type=tree
+wall,18,11,width=1,height=18,solid=true,type=tree
+wall,19,9,width=1,height=20,solid=true,type=tree
+wall,20,10,width=1,height=19,solid=true,type=tree
+wall,21,11,width=1,height=18,solid=true,type=tree
+wall,22,10,width=1,height=19,solid=true,type=tree
+wall,23,9,width=1,height=20,solid=true,type=tree
+wall,24,11,width=1,height=18,solid=true,type=tree
+wall,25,12,width=1,height=17,solid=true,type=tree
+wall,26,11,width=1,height=18,solid=true,type=tree
+wall,27,13,width=1,height=16,solid=true,type=tree
+wall,28,11,width=1,height=18,solid=true,type=tree
+wall,29,10,width=1,height=19,solid=true,type=tree
+wall,30,11,width=1,height=18,solid=true,type=tree
+wall,31,13,width=1,height=16,solid=true,type=tree
+wall,32,13,width=1,height=16,solid=true,type=tree
+wall,33,14,width=1,height=15,solid=true,type=tree
+wall,34,12,width=1,height=17,solid=true,type=tree
+wall,35,13,width=1,height=16,solid=true,type=tree
+wall,36,15,width=1,height=14,solid=true,type=tree
+wall,37,16,width=1,height=13,solid=true,type=tree
+wall,38,16,width=1,height=13,solid=true,type=tree
+wall,39,17,width=1,height=12,solid=true,type=tree
+wall,40,8,width=1,height=21,solid=true,type=tree
+wall,41,18,width=1,height=11,solid=true,type=tree
+wall,42,19,width=1,height=10,solid=true,type=tree
+wall,43,19,width=1,height=10,solid=true,type=tree
+wall,44,17,width=1,height=12,solid=true,type=tree
+wall,45,17,width=1,height=12,solid=true,type=tree
+wall,46,19,width=1,height=10,solid=true,type=tree
+wall,47,17,width=1,height=12,solid=true,type=tree
+wall,48,17,width=1,height=12,solid=true,type=tree
+wall,49,19,width=1,height=10,solid=true,type=tree
+wall,50,17,width=1,height=12,solid=true,type=tree
+wall,51,17,width=1,height=12,solid=true,type=tree
+wall,52,19,width=1,height=10,solid=true,type=tree
+wall,53,20,width=1,height=9,solid=true,type=tree
+wall,54,21,width=1,height=8,solid=true,type=tree
+wall,55,22,width=1,height=7,solid=true,type=tree
+wall,56,21,width=1,height=8,solid=true,type=tree
+wall,57,23,width=1,height=6,solid=true,type=tree
+wall,63,23,width=3,height=1,solid=true,type=ground
+wall,62,20,width=1,height=2,solid=true
+
+[conditions]
+# Format: type,target,value
+# Comprehensive verification conditions testing all systems
+
+agent_position,1,y>1280
+agent_has_ability,2,phase_shift
+trigger_activated,success_zone,true

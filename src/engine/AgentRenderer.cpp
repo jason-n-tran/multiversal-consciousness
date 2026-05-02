@@ -6,18 +6,122 @@ void AgentRenderer::initialize(EntityManager& entity_manager, ComponentRegistry&
     std::cout << "AgentRenderer initialized" << std::endl;
 }
 
+void AgentRenderer::initialize_sprites(SDL_Renderer* renderer) {
+    sdl_renderer_ = renderer;
+
+    load_agent_sprites(1, "assets/City_men_1");
+    load_agent_sprites(2, "assets/City_men_2");
+    load_agent_sprites(3, "assets/City_men_3");
+    
+    std::cout << "AgentRenderer sprites initialized" << std::endl;
+}
+
+bool AgentRenderer::load_agent_sprites(uint8_t agent_number, const std::string& base_path) {
+    if (!sdl_renderer_) {
+        std::cerr << "Cannot load sprites: SDL renderer not set" << std::endl;
+        return false;
+    }
+    
+    AgentSpriteData sprite_data;
+    
+    std::string idle_path = base_path + "/Idle.png";
+    SDL_Surface* idle_surface = IMG_Load(idle_path.c_str());
+    if (!idle_surface) {
+        std::cerr << "Failed to load idle sprite: " << idle_path << " - " << SDL_GetError() << std::endl;
+        return false;
+    }
+    
+    sprite_data.idle.texture = SDL_CreateTextureFromSurface(sdl_renderer_, idle_surface);
+    
+    std::cout << "Idle sprite sheet: " << idle_surface->w << "x" << idle_surface->h << " pixels" << std::endl;
+    
+    sprite_data.idle.frame_width = 128;
+    sprite_data.idle.frame_height = 128;
+    sprite_data.idle.frame_count = idle_surface->w / 128;  // Calculate from actual width
+    sprite_data.idle.frame_duration = 0.15f;
+    sprite_data.sprite_width = sprite_data.idle.frame_width;
+    sprite_data.sprite_height = sprite_data.idle.frame_height;
+    
+    std::cout << "Idle: " << sprite_data.idle.frame_count << " frames of " 
+              << sprite_data.idle.frame_width << "x" << sprite_data.idle.frame_height << std::endl;
+    
+    SDL_DestroySurface(idle_surface);
+    
+    if (!sprite_data.idle.texture) {
+        std::cerr << "Failed to create texture from idle sprite: " << SDL_GetError() << std::endl;
+        return false;
+    }
+    
+    std::string run_path = base_path + "/Run.png";
+    SDL_Surface* run_surface = IMG_Load(run_path.c_str());
+    if (!run_surface) {
+        std::cerr << "Failed to load run sprite: " << run_path << " - " << SDL_GetError() << std::endl;
+        SDL_DestroyTexture(sprite_data.idle.texture);
+        return false;
+    }
+    
+    sprite_data.run.texture = SDL_CreateTextureFromSurface(sdl_renderer_, run_surface);
+    
+    std::cout << "Run sprite sheet: " << run_surface->w << "x" << run_surface->h << " pixels" << std::endl;
+    
+    sprite_data.run.frame_width = 128;
+    sprite_data.run.frame_height = 128;
+    sprite_data.run.frame_count = run_surface->w / 128;  // Calculate from actual width
+    sprite_data.run.frame_duration = 0.08f;
+    
+    std::cout << "Run: " << sprite_data.run.frame_count << " frames of " 
+              << sprite_data.run.frame_width << "x" << sprite_data.run.frame_height << std::endl;
+    
+    SDL_DestroySurface(run_surface);
+    
+    if (!sprite_data.run.texture) {
+        std::cerr << "Failed to create texture from run sprite: " << SDL_GetError() << std::endl;
+        SDL_DestroyTexture(sprite_data.idle.texture);
+        return false;
+    }
+    
+    agent_sprites_[agent_number] = sprite_data;
+    std::cout << "Loaded sprites for agent " << static_cast<int>(agent_number) 
+              << " (size: " << sprite_data.sprite_width << "x" << sprite_data.sprite_height << ")" << std::endl;
+    
+    return true;
+}
+
 void AgentRenderer::update(float delta_time) {
     animation_time_ += delta_time;
+    
+    if (!component_registry_) {
+        return;
+    }
+    
+    const auto* agent_container = component_registry_->get_all_components<Agent>();
+    if (!agent_container) {
+        return;
+    }
+    
+    const auto& entities = agent_container->get_entities();
+    for (EntityID entity : entities) {
+        const PhysicsComponent* physics = component_registry_->get_component<PhysicsComponent>(entity);
+        AnimationState new_state = get_animation_state(entity, physics);
+        
+        update_entity_animation(entity, new_state, delta_time);
+        
+        if (physics && std::abs(physics->velocity_x) > 0.1f) {
+            entity_facing_right_[entity] = physics->velocity_x > 0.0f;
+        }
+    }
 }
 
 void AgentRenderer::render(SDL_Renderer* renderer) {
     if (!component_registry_) {
         return;
     }
+    
     Reality current_reality = Reality::A;
     if (reality_manager_) {
         current_reality = reality_manager_->get_current_reality();
     }
+    
     const auto* agent_container = component_registry_->get_all_components<Agent>();
     if (!agent_container) {
         return;
@@ -36,16 +140,32 @@ void AgentRenderer::render(SDL_Renderer* renderer) {
         }
         
         const Renderable* renderable = component_registry_->get_component<Renderable>(entity);
-
-        if (renderable) {
-            render_agent_with_animation(renderer, entity, *transform, agent, *renderable, current_reality);
+        
+        Renderable dummy_renderable;
+        if (!renderable) {
+            renderable = &dummy_renderable;
         }
+        
+        render_agent_with_animation(renderer, entity, *transform, agent, *renderable, current_reality);
         
         render_agent_feedback(renderer, entity, *transform, agent, renderable);
     }
 }
 
 void AgentRenderer::shutdown() {
+    for (auto& [agent_num, sprite_data] : agent_sprites_) {
+        if (sprite_data.idle.texture) {
+            SDL_DestroyTexture(sprite_data.idle.texture);
+        }
+        if (sprite_data.run.texture) {
+            SDL_DestroyTexture(sprite_data.run.texture);
+        }
+    }
+    agent_sprites_.clear();
+    entity_animation_states_.clear();
+    entity_animation_times_.clear();
+    entity_facing_right_.clear();
+    
     camera_controller_ = nullptr;
     std::cout << "AgentRenderer shutdown" << std::endl;
 }
@@ -61,34 +181,26 @@ void AgentRenderer::render_agent_feedback(SDL_Renderer* renderer, EntityID entit
         screen_y = static_cast<int>(transform.y);
     }
     
-    float agent_width = 32.0f;
-    float agent_height = 32.0f;
-    if (renderable) {
-        agent_width = static_cast<float>(renderable->source_rect.w) * transform.scale_x;
-        agent_height = static_cast<float>(renderable->source_rect.h) * transform.scale_y;
-    }
+    float scale_factor = 32.0f / 128.0f;
+    float agent_width = 128.0f * scale_factor * transform.scale_x;
+    float agent_height = 128.0f * scale_factor * transform.scale_y;
+    
+    int visual_center_y = screen_y;
     
     if (agent.is_possessed) {
-        float glow_intensity = calculate_glow_intensity();
-        render_glow(renderer, static_cast<float>(screen_x), static_cast<float>(screen_y), 
-                   agent_width, agent_height, 
-                   visual_config_.possessed_glow_color, 
-                   visual_config_.possessed_glow_radius, glow_intensity);
-        
-        render_outline(renderer, static_cast<float>(screen_x), static_cast<float>(screen_y), 
-                      agent_width, agent_height, 
+    } 
+    
+    float number_draw_y = static_cast<float>(visual_center_y) - agent_height * 0.5f + visual_config_.number_offset_y;
+    
+    render_agent_number(renderer, static_cast<float>(screen_x), number_draw_y, agent.agent_number);
+                       
+    if (agent.is_possessed) {
+        float number_size = 24.0f; 
+        render_outline(renderer, static_cast<float>(screen_x), number_draw_y, 
+                      number_size, number_size, 
                       visual_config_.possessed_outline_color, 
                       visual_config_.possessed_outline_width);
-    } else {
-        render_outline(renderer, static_cast<float>(screen_x), static_cast<float>(screen_y), 
-                      agent_width, agent_height, 
-                      visual_config_.idle_outline_color, 
-                      visual_config_.idle_outline_width);
     }
-    
-    render_agent_number(renderer, static_cast<float>(screen_x), 
-                       static_cast<float>(screen_y) + visual_config_.number_offset_y, 
-                       agent.agent_number);
 }
 
 void AgentRenderer::render_outline(SDL_Renderer* renderer, float x, float y, 
@@ -209,6 +321,49 @@ void AgentRenderer::set_visual_config(const AgentVisualConfig& config) {
 void AgentRenderer::render_agent_with_animation(SDL_Renderer* renderer, EntityID entity,
                                                const Transform& transform, const Agent& agent,
                                                const Renderable& renderable, Reality current_reality) {
+    auto sprite_it = agent_sprites_.find(agent.agent_number);
+    if (sprite_it == agent_sprites_.end()) {
+        render_simple_agent(renderer, entity, transform, agent, renderable);
+        return;
+    }
+    
+    const AgentSpriteData& sprite_data = sprite_it->second;
+    
+    auto state_it = entity_animation_states_.find(entity);
+    AnimationState current_state = (state_it != entity_animation_states_.end()) ? state_it->second : AnimationState::Idle;
+    
+    float anim_time = 0.0f;
+    auto time_it = entity_animation_times_.find(entity);
+    if (time_it != entity_animation_times_.end()) {
+        anim_time = time_it->second;
+    }
+    
+    const SpriteAnimation* current_anim = nullptr;
+    switch (current_state) {
+        case AnimationState::Idle:
+            current_anim = &sprite_data.idle;
+            break;
+        case AnimationState::Jump:
+        case AnimationState::Fall:
+        case AnimationState::Run:
+            current_anim = &sprite_data.run;
+            break;
+    }
+    
+    if (!current_anim || !current_anim->texture) {
+        render_simple_agent(renderer, entity, transform, agent, renderable);
+        return;
+    }
+    
+    int current_frame = static_cast<int>(anim_time / current_anim->frame_duration) % current_anim->frame_count;
+    
+    SDL_FRect src_rect = {
+        static_cast<float>(current_frame * current_anim->frame_width),
+        0.0f,
+        static_cast<float>(current_anim->frame_width),
+        static_cast<float>(current_anim->frame_height)
+    };
+    
     int screen_x, screen_y;
     if (camera_controller_) {
         camera_controller_->world_to_screen(transform.x, transform.y, screen_x, screen_y);
@@ -217,10 +372,44 @@ void AgentRenderer::render_agent_with_animation(SDL_Renderer* renderer, EntityID
         screen_y = static_cast<int>(transform.y);
     }
     
-    SDL_Rect animation_frame = get_animation_frame(agent, current_reality, animation_time_);
+    float scale_factor = 64.0f / 128.0f;
+    float render_width = 128.0f * scale_factor * transform.scale_x;
+    float render_height = 128.0f * scale_factor * transform.scale_y;
     
-    float agent_width = static_cast<float>(animation_frame.w) * transform.scale_x;
-    float agent_height = static_cast<float>(animation_frame.h) * transform.scale_y;
+    float physics_bottom_offset = 16.0f * transform.scale_y;
+    
+    SDL_FRect dest_rect = {
+        static_cast<float>(screen_x) - render_width * 0.5f,
+        static_cast<float>(screen_y) + physics_bottom_offset - render_height,
+        render_width,
+        render_height
+    };
+    
+    bool facing_right = true;
+    auto facing_it = entity_facing_right_.find(entity);
+    if (facing_it != entity_facing_right_.end()) {
+        facing_right = facing_it->second;
+    }
+    
+    SDL_FlipMode flip = facing_right ? SDL_FLIP_NONE : SDL_FLIP_HORIZONTAL;
+    
+    SDL_RenderTextureRotated(renderer, current_anim->texture, &src_rect, &dest_rect, 
+                            0.0, nullptr, flip);
+}
+
+void AgentRenderer::render_simple_agent(SDL_Renderer* renderer, EntityID entity,
+                                       const Transform& transform, const Agent& agent,
+                                       const Renderable& renderable) {
+    int screen_x, screen_y;
+    if (camera_controller_) {
+        camera_controller_->world_to_screen(transform.x, transform.y, screen_x, screen_y);
+    } else {
+        screen_x = static_cast<int>(transform.x);
+        screen_y = static_cast<int>(transform.y);
+    }
+    
+    float agent_width = 32.0f * transform.scale_x;
+    float agent_height = 32.0f * transform.scale_y;
     
     SDL_FRect dest_rect = {
         static_cast<float>(screen_x) - agent_width * 0.5f,
@@ -229,21 +418,9 @@ void AgentRenderer::render_agent_with_animation(SDL_Renderer* renderer, EntityID
         agent_height
     };
     
-    SDL_FColor render_color = {renderable.color_r, renderable.color_g, renderable.color_b, renderable.color_a};
-    
-    if (agent.is_possessed) {
-        render_color.r = std::min(1.0f, render_color.r * 1.1f);
-        render_color.g = std::min(1.0f, render_color.g * 1.1f);
-        render_color.b = std::min(1.0f, render_color.b * 1.1f);
-    } else {
-        render_color.r *= 0.9f;
-        render_color.g *= 0.9f;
-        render_color.b *= 0.9f;
-    }
-    
-    SDL_SetRenderDrawColorFloat(renderer, render_color.r, render_color.g, render_color.b, render_color.a);
+    SDL_SetRenderDrawColorFloat(renderer, renderable.color_r, renderable.color_g, 
+                               renderable.color_b, renderable.color_a);
     SDL_RenderFillRect(renderer, &dest_rect);
-    
     SDL_SetRenderDrawColorFloat(renderer, 0.0f, 0.0f, 0.0f, 1.0f);
     SDL_RenderRect(renderer, &dest_rect);
 }
@@ -268,4 +445,39 @@ SDL_Rect AgentRenderer::get_animation_frame(const Agent& agent, Reality current_
     }
     
     return SDL_Rect{frame_x, frame_y, frame_width, frame_height};
+}
+
+AnimationState AgentRenderer::get_animation_state(EntityID entity, const PhysicsComponent* physics) const {
+    if (!physics) {
+        return AnimationState::Idle;
+    }
+    
+    bool is_moving = std::abs(physics->velocity_x) > 0.5f;
+    
+    bool is_grounded = physics->is_grounded;
+    
+    if (!is_grounded) {
+        if (physics->velocity_y < -0.5f) {
+            return AnimationState::Jump;
+        } else {
+            return AnimationState::Fall;
+        }
+    } else if (is_moving) {
+        return AnimationState::Run;
+    } else {
+        return AnimationState::Idle;
+    }
+}
+
+void AgentRenderer::update_entity_animation(EntityID entity, AnimationState new_state, float delta_time) {
+    auto state_it = entity_animation_states_.find(entity);
+    AnimationState current_state = (state_it != entity_animation_states_.end()) ? 
+                                   state_it->second : AnimationState::Idle;
+    
+    if (current_state != new_state) {
+        entity_animation_times_[entity] = 0.0f;
+        entity_animation_states_[entity] = new_state;
+    } else {
+        entity_animation_times_[entity] += delta_time;
+    }
 }

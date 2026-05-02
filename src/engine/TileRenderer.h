@@ -1,6 +1,7 @@
 #pragma once
 
 #include <SDL3/SDL.h>
+#include <SDL3_image/SDL_image.h>
 #include <memory>
 #include <string>
 #include <unordered_map>
@@ -24,7 +25,7 @@ struct Tile {
 };
 
 struct TileMap {
-    std::vector<std::vector<Tile>> tiles;
+    std::vector<std::vector<std::vector<Tile>>> tiles;
     int width = 0;
     int height = 0;
     int tile_size = 32;
@@ -32,11 +33,17 @@ struct TileMap {
     Tile* get_tile(int x, int y);
     
     const Tile* get_tile(int x, int y) const;
+
+    std::vector<Tile>* get_tile_stack(int x, int y);
+
+    const std::vector<Tile>* get_tile_stack(int x, int y) const;
     
     bool set_tile(int x, int y, const Tile& tile);
-    
+
+    void remove_tiles_by_id_range(int x, int y, int min_id, int max_id);
+
     void initialize(int w, int h, const Tile& default_tile = {});
-    
+
     void clear();
 };
 

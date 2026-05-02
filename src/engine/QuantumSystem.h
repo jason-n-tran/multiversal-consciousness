@@ -30,7 +30,7 @@ struct QuantumInteraction {
 class QuantumSystem : public ISystem {
 private:
     std::queue<QuantumInteraction> pending_interactions_;    
-    std::unique_ptr<RealityManager> reality_manager_; 
+    RealityManager* reality_manager_{nullptr};
     InputManager* input_manager_{nullptr}; 
     PossessionSystem* possession_system_{nullptr};
     QuantumLoadoutSystem* loadout_system_{nullptr};
@@ -40,7 +40,7 @@ private:
     std::unordered_map<EntityID, EntityID> agent_prompt_targets_; 
     
 public:
-    explicit QuantumSystem(std::unique_ptr<RealityManager> reality_manager);
+    explicit QuantumSystem(RealityManager* reality_manager);
     
     ~QuantumSystem() override = default;
     

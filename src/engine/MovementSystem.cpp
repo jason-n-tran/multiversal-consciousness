@@ -2,6 +2,8 @@
 #include "QuantumLoadoutSystem.h"
 #include <iostream>
 #include <cmath>
+#include <unordered_map>
+#include <SDL3/SDL.h>
 
 void MovementSystem::initialize(EntityManager& entity_manager, ComponentRegistry& component_registry) {
     std::cout << "MovementSystem initialized" << std::endl;
@@ -51,6 +53,7 @@ void MovementSystem::apply_movement(EntityID entity, float delta_time) {
     }
     bool jump_pressed = input_manager_->is_action_just_pressed(InputAction::JUMP);
     bool jumped = handle_jumping(entity, physics, agent, jump_pressed);
+    handle_dash_ability(entity, physics, agent, move_x);
     if (input_manager_->is_action_active(InputAction::MOVE_DOWN)) {
         move_y += 1.0f;
     }
@@ -67,16 +70,13 @@ void MovementSystem::apply_movement(EntityID entity, float delta_time) {
         if (move_x != 0.0f) {
             physics->velocity_x = move_x * movement_force;
         } else {
-            physics->velocity_x *= 0.8f; 
+            physics->velocity_x *= 0.8f;
         }
         
         if (move_y > 0.0f) {
             physics->velocity_y = move_y * movement_force;
         }
         
-        if (move_x != 0.0f || jumped) {
-            std::cout << "Physics movement for agent " << static_cast<int>(agent->agent_number) 
-                      << " velocity: (" << physics->velocity_x << ", " << physics->velocity_y << ")" << std::endl;
         }
     } else {
         float movement_distance = agent->movement_speed * delta_time;
@@ -108,12 +108,21 @@ bool MovementSystem::handle_jumping(EntityID entity, PhysicsComponent* physics, 
     }
     
     bool can_jump = physics->is_grounded;
+
+    if (physics->is_grounded) {
+        physics->has_double_jumped = false;
+    }
+
     bool is_double_jump = false;
     
     if (!can_jump && loadout_system_ && !physics->has_double_jumped) {
         AbilityType current_ability = loadout_system_->get_current_ability(entity);
         if (current_ability == AbilityType::DoubleJump) {
-            can_jump = !physics->is_grounded && loadout_system_->can_use_current_ability(entity);
+            bool usable = loadout_system_->can_use_current_ability(entity);
+            if (!usable) {
+                 std::cout << "DoubleJump rejected: Ability not ready (Cooldown or other limit)" << std::endl;
+            }
+            can_jump = !physics->is_grounded && usable;
             is_double_jump = true;
             
             if (can_jump) {
@@ -128,14 +137,65 @@ bool MovementSystem::handle_jumping(EntityID entity, PhysicsComponent* physics, 
         float movement_force = agent->movement_speed;
         physics->velocity_y = -movement_force * 2.0f; 
         
-        if (physics->is_grounded) {
-            physics->is_grounded = false;
-            physics->has_double_jumped = false; 
-        }
         
         std::cout << "Agent " << static_cast<int>(agent->agent_number) << " jumped!" << std::endl;
         return true;
     }
     
     return false;
+}
+
+void MovementSystem::handle_dash_ability(EntityID entity, PhysicsComponent* physics, Agent* agent, float move_direction) {
+    if (!physics || !agent || !loadout_system_) {
+        return;
+    }
+    
+    AbilityType current_ability = loadout_system_->get_current_ability(entity);
+    if (current_ability != AbilityType::Dash) {
+        return;
+    }
+    
+    static std::unordered_map<EntityID, float> last_left_press_time;
+    static std::unordered_map<EntityID, float> last_right_press_time;
+    static const float DOUBLE_TAP_TIME = 0.3f; 
+    
+    float current_time = SDL_GetTicks() / 1000.0f; 
+    
+    if (input_manager_->is_action_just_pressed(InputAction::MOVE_LEFT)) {
+        auto time_it = last_left_press_time.find(entity);
+        if (time_it != last_left_press_time.end()) {
+            float time_diff = current_time - time_it->second;
+            if (time_diff < DOUBLE_TAP_TIME && loadout_system_->can_use_current_ability(entity)) {
+                float dash_force = agent->movement_speed * 3.0f; 
+                physics->velocity_x = -dash_force;
+                
+                loadout_system_->use_ability(entity);
+                
+                std::cout << "Agent " << static_cast<int>(agent->agent_number) << " used Dash LEFT!" << std::endl;
+                
+                last_left_press_time.erase(entity);
+                return;
+            }
+        }
+        last_left_press_time[entity] = current_time;
+    }
+    
+    if (input_manager_->is_action_just_pressed(InputAction::MOVE_RIGHT)) {
+        auto time_it = last_right_press_time.find(entity);
+        if (time_it != last_right_press_time.end()) {
+            float time_diff = current_time - time_it->second;
+            if (time_diff < DOUBLE_TAP_TIME && loadout_system_->can_use_current_ability(entity)) {
+                float dash_force = agent->movement_speed * 3.0f; 
+                physics->velocity_x = dash_force;
+                
+                loadout_system_->use_ability(entity);
+                
+                std::cout << "Agent " << static_cast<int>(agent->agent_number) << " used Dash RIGHT!" << std::endl;
+                
+                last_right_press_time.erase(entity);
+                return;
+            }
+        }
+        last_right_press_time[entity] = current_time;
+    }
 }

@@ -10,10 +10,13 @@
 #include <memory>
 #include <unordered_map>
 
+class HUDSystem;
+
 class InteractiveObstacleSystem : public ISystem {
 private:
     InputManager* input_manager_{nullptr};           
     PossessionSystem* possession_system_{nullptr};  
+    HUDSystem* hud_system_{nullptr};
     
     std::unordered_map<EntityID, std::unique_ptr<IInteractable>> obstacles_;
     
@@ -49,6 +52,8 @@ public:
     void set_input_manager(InputManager* input_manager);
     
     void set_possession_system(PossessionSystem* possession_system);
+
+    void set_hud_system(HUDSystem* hud_system);
     
     void register_obstacle(EntityID entity);
     
@@ -57,4 +62,6 @@ public:
     EntityID get_nearby_interactable() const;
     
     bool force_interaction(EntityID agent_entity, EntityID obstacle_entity);
+
+    void reset();
 };

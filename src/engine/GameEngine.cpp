@@ -102,6 +102,59 @@ bool GameEngine::initialize(const EngineConfig& config) {
     return true;
 }
 
+void GameEngine::single_step(float delta_time) {
+    SDL_Event event;
+    
+    while (SDL_PollEvent(&event)) {
+        bool handled_by_input = input_manager_->process_event(event);
+        
+        if (!handled_by_input) {
+            if (event.type == SDL_EVENT_QUIT) {
+                is_running_ = false;
+            }
+        }
+    }
+    
+    input_manager_->update(delta_time);
+    
+    if (input_manager_->is_action_just_pressed(InputAction::PAUSE)) {
+        toggle_pause();
+        std::cout << "Game " << (is_paused_ ? "PAUSED" : "UNPAUSED") << std::endl;
+    }
+    
+    plugin_manager_->update(delta_time);
+    system_manager_->update(delta_time, is_paused_);
+    
+    SDL_SetRenderDrawColor(renderer_.get(), 25, 25, 50, 255);
+    SDL_RenderClear(renderer_.get());
+    system_manager_->render(renderer_.get());
+    SDL_RenderPresent(renderer_.get());
+}
+
+#ifdef __EMSCRIPTEN__
+#include <emscripten.h>
+
+void emscripten_loop_callback(void* arg) {
+    GameEngine* engine = static_cast<GameEngine*>(arg);
+    
+    if (!engine->is_running()) {
+        emscripten_cancel_main_loop();
+        return;
+    }
+    
+    static auto last_time = std::chrono::high_resolution_clock::now();
+    auto current_time = std::chrono::high_resolution_clock::now();
+    auto delta_duration = current_time - last_time;
+    float delta_time = std::chrono::duration<float>(delta_duration).count();
+    
+    constexpr float MAX_DELTA_TIME = 1.0f / 30.0f;
+    delta_time = std::min(delta_time, MAX_DELTA_TIME);
+    last_time = current_time;
+    
+    engine->single_step(delta_time);
+}
+#endif
+
 void GameEngine::run() {
     if (!is_initialized_) {
         std::cerr << "Engine not initialized. Call initialize() first." << std::endl;
@@ -109,10 +162,11 @@ void GameEngine::run() {
     }
     
     is_running_ = true;
-    SDL_Event event;
-    
     std::cout << "Starting main game loop..." << std::endl;
-
+    
+#ifdef __EMSCRIPTEN__
+    emscripten_set_main_loop_arg(emscripten_loop_callback, this, 0, 1);
+#else
     auto last_time = std::chrono::high_resolution_clock::now();
     constexpr float TARGET_FPS = 60.0f;
     constexpr float TARGET_FRAME_TIME = 1.0f / TARGET_FPS;
@@ -130,31 +184,7 @@ void GameEngine::run() {
         constexpr float MAX_DELTA_TIME = 1.0f / 30.0f; 
         delta_time = std::min(delta_time, MAX_DELTA_TIME);
         last_time = current_time;
-        // Handle events
-        while (SDL_PollEvent(&event)) {
-            bool handled_by_input = input_manager_->process_event(event);
-            
-            if (!handled_by_input) {
-                if (event.type == SDL_EVENT_QUIT) {
-                    is_running_ = false;
-                }
-            }
-            
-            if (input_manager_->is_action_just_pressed(InputAction::PAUSE)) {
-                is_running_ = false;
-            }
-        }
-        
-        input_manager_->update(delta_time);
-        system_manager_->update(delta_time);
-
-        
-        SDL_SetRenderDrawColor(renderer_.get(), 25, 25, 50, 255);
-        SDL_RenderClear(renderer_.get());
-        system_manager_->render(renderer_.get());
-        
-        SDL_RenderPresent(renderer_.get());
-        
+        single_step(delta_time);
         auto frame_end = std::chrono::high_resolution_clock::now();
         auto frame_duration = frame_end - frame_start;
         
@@ -173,7 +203,7 @@ void GameEngine::run() {
             float avg_fps = frame_count / accumulated_time;
             
             if (frame_count % 60 == 0) { 
-                std::string title = "Quantum Bifurcation - Complete Engine Integration (FPS: " + 
+                std::string title = "Multiversal Consciousness - Complete Engine Integration (FPS: " + 
                                   std::to_string(static_cast<int>(avg_fps)) + ")";
                 SDL_SetWindowTitle(window_.get(), title.c_str());
             }
@@ -183,6 +213,7 @@ void GameEngine::run() {
             fps_timer = current_time;
         }
     }
+#endif
     
     std::cout << "Main game loop ended" << std::endl;
 }
@@ -204,6 +235,7 @@ void GameEngine::shutdown() {
     renderer_.reset();
     window_.reset();
     
+    // Quit SDL subsystems
     SDL_Quit();
     
     is_initialized_ = false;

@@ -7,10 +7,16 @@
 #include <string>
 #include <vector>
 
+#include "LevelLoader.h"
+class HUDSystem;
+class RealityManager;
+
 class VerificationSystem : public ISystem {
 private:
     EntityManager* entity_manager_{nullptr};
     ComponentRegistry* component_registry_{nullptr};
+    HUDSystem* hud_system_{nullptr};
+    RealityManager* reality_manager_{nullptr};
     
     bool scenario_completed_{false};
     bool scenario_failed_{false};
@@ -21,6 +27,9 @@ private:
     bool agent_has_required_ability_{false};
     bool correct_reality_active_{false};
     
+    std::vector<LevelCondition> active_conditions_;
+    bool conditions_met_{false};
+    
     bool check_success_zone();
     
     bool check_required_ability();
@@ -28,6 +37,12 @@ private:
     bool check_reality_state();
     
     void update_feedback();
+
+    bool check_all_conditions();
+    
+    bool check_condition(const LevelCondition& condition);
+
+    std::string get_condition_description(const LevelCondition& condition);
     
     void reset_scenario();
     
@@ -53,5 +68,13 @@ public:
     
     void trigger_reset() { reset_scenario(); }
     
+    void reset();
+
     std::string get_verification_stats() const;
+    
+    void set_hud_system(HUDSystem* hud_system);
+    
+    void set_reality_manager(RealityManager* reality_manager);
+
+    void set_conditions(const std::vector<LevelCondition>& conditions);
 };

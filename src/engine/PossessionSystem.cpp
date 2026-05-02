@@ -3,10 +3,12 @@
 #include <iostream>
 
 void PossessionSystem::initialize(EntityManager& entity_manager, ComponentRegistry& component_registry) {
+    ISystem::initialize(entity_manager, component_registry);
+    
     std::cout << "PossessionSystem initialized" << std::endl;
     
     camera_ = std::make_unique<CameraController>();
-    camera_->initialize(component_registry, 800, 600);
+    camera_->initialize(component_registry, 1280, 720);
     
     update_agent_mappings();
 }
@@ -17,7 +19,6 @@ void PossessionSystem::update(float delta_time) {
     if (camera_) {
         camera_->update(delta_time);
     }
-
     if (input_manager_) {
         if (input_manager_->is_action_just_pressed(InputAction::POSSESS_AGENT_1)) {
             possess_agent(1);
@@ -95,6 +96,8 @@ void PossessionSystem::set_agent_possession_state(EntityID entity, bool is_posse
 }
 
 bool PossessionSystem::possess_agent(uint8_t agent_number) {
+    update_agent_mappings();
+
     if (agent_number < 1 || agent_number > 9) {
         return false;
     }
@@ -202,6 +205,15 @@ void PossessionSystem::update_camera_target() {
     }
 }
 
+void PossessionSystem::snap_camera_to_possessed() {
+    if (camera_ && possessed_entity_.has_value()) {
+        const Transform* transform = component_registry_->get_component<Transform>(possessed_entity_.value());
+        if (transform) {
+            camera_->set_position(transform->x, transform->y);
+        }
+    }
+}
+
 CameraController& PossessionSystem::get_camera_controller() {
     if (!camera_) {
         throw std::runtime_error("Camera controller not initialized");
@@ -235,4 +247,9 @@ void PossessionSystem::set_input_manager(InputManager* input_manager) {
 
 void PossessionSystem::set_hud_system(HUDSystem* hud_system) {
     hud_system_ = hud_system;
+}
+
+void PossessionSystem::reset() {
+    release_possession();
+    agent_mappings_.clear();
 }

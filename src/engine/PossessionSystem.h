@@ -72,4 +72,6 @@ public:
     void set_hud_system(HUDSystem* hud_system);
     
     bool handle_input(const SDL_Event& event);
+    
+    void reset();
 };

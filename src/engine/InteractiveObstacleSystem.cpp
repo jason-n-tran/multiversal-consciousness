@@ -1,4 +1,5 @@
 #include "InteractiveObstacleSystem.h"
+#include "HUDSystem.h"
 #include <cmath>
 #include <limits>
 
@@ -46,6 +47,10 @@ void InteractiveObstacleSystem::set_input_manager(InputManager* input_manager) {
 
 void InteractiveObstacleSystem::set_possession_system(PossessionSystem* possession_system) {
     possession_system_ = possession_system;
+}
+
+void InteractiveObstacleSystem::set_hud_system(HUDSystem* hud_system) {
+    hud_system_ = hud_system;
 }
 
 void InteractiveObstacleSystem::register_obstacle(EntityID entity) {
@@ -97,6 +102,13 @@ bool InteractiveObstacleSystem::force_interaction(EntityID agent_entity, EntityI
     
     obstacle_it->second->interact(agent_entity, *entity_manager_, *component_registry_);
     
+    if (hud_system_) {
+        std::string feedback = obstacle_it->second->get_feedback_message();
+        if (!feedback.empty()) {
+            hud_system_->set_verification_message(feedback, 2.0f);
+        }
+    }
+    
     if (!entity_manager_->is_valid(obstacle_entity)) {
         unregister_obstacle(obstacle_entity);
     }
@@ -129,6 +141,24 @@ void InteractiveObstacleSystem::update_proximity_detection(EntityID possessed_ag
             if (obstacle_transform) {
                 float dx = agent_transform->x - obstacle_transform->x;
                 float dy = agent_transform->y - obstacle_transform->y;
+                
+                if (interactable->type == InteractionType::Tree) {
+                    const auto* wall = component_registry_->get_component<Wall>(entity);
+                    if (wall) {
+                        float half_height = wall->height * 0.5f;
+                        float tree_top = obstacle_transform->y - half_height;
+                        float tree_bottom = obstacle_transform->y + half_height;
+                        
+                        if (agent_transform->y < tree_top) {
+                            dy = agent_transform->y - tree_top;
+                        } else if (agent_transform->y > tree_bottom) {
+                            dy = agent_transform->y - tree_bottom;
+                        } else {
+                            dy = 0.0f;
+                        }
+                    }
+                }
+                
                 float distance = std::sqrt(dx * dx + dy * dy);
                 
                 if (distance < closest_distance) {
@@ -153,6 +183,24 @@ bool InteractiveObstacleSystem::is_within_interaction_range(EntityID agent_entit
     
     float dx = agent_transform->x - obstacle_transform->x;
     float dy = agent_transform->y - obstacle_transform->y;
+    
+    if (interactable->type == InteractionType::Tree) {
+        const auto* wall = component_registry_->get_component<Wall>(obstacle_entity);
+        if (wall) {
+            float half_height = wall->height * 0.5f;
+            float tree_top = obstacle_transform->y - half_height;
+            float tree_bottom = obstacle_transform->y + half_height;
+            
+            if (agent_transform->y < tree_top) {
+                dy = agent_transform->y - tree_top;
+            } else if (agent_transform->y > tree_bottom) {
+                dy = agent_transform->y - tree_bottom;
+            } else {
+                dy = 0.0f;
+            }
+        }
+    }
+    
     float distance = std::sqrt(dx * dx + dy * dy);
     
     return distance <= interactable->interaction_radius;
@@ -177,7 +225,7 @@ std::unique_ptr<IInteractable> InteractiveObstacleSystem::create_obstacle(Entity
         case InteractionType::Chasm:
             return std::make_unique<ChasmObstacle>(entity);
         case InteractionType::Switch:
-            return nullptr;
+            return std::make_unique<SwitchObstacle>(entity);
         case InteractionType::QuantumNode:
             return nullptr;
         default:
@@ -226,4 +274,9 @@ void InteractiveObstacleSystem::update_interaction_prompts(EntityID possessed_ag
             }
         }
     }
+}
+
+void InteractiveObstacleSystem::reset() {
+    obstacles_.clear();
+    nearby_interactable_ = INVALID_ENTITY;
 }

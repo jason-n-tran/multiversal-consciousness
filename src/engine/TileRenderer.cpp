@@ -1,15 +1,30 @@
 #include "TileRenderer.h"
+#include "Components.h"
 #include <iostream>
 #include <algorithm>
 
 Tile* TileMap::get_tile(int x, int y) {
+    if (x < 0 || x >= width || y < 0 || y >= height || tiles[y][x].empty()) {
+        return nullptr;
+    }
+    return &tiles[y][x].back();
+}
+
+const Tile* TileMap::get_tile(int x, int y) const {
+    if (x < 0 || x >= width || y < 0 || y >= height || tiles[y][x].empty()) {
+        return nullptr;
+    }
+    return &tiles[y][x].back();
+}
+
+std::vector<Tile>* TileMap::get_tile_stack(int x, int y) {
     if (x < 0 || x >= width || y < 0 || y >= height) {
         return nullptr;
     }
     return &tiles[y][x];
 }
 
-const Tile* TileMap::get_tile(int x, int y) const {
+const std::vector<Tile>* TileMap::get_tile_stack(int x, int y) const {
     if (x < 0 || x >= width || y < 0 || y >= height) {
         return nullptr;
     }
@@ -20,8 +35,33 @@ bool TileMap::set_tile(int x, int y, const Tile& tile) {
     if (x < 0 || x >= width || y < 0 || y >= height) {
         return false;
     }
-    tiles[y][x] = tile;
+    
+    auto& stack = tiles[y][x];
+    
+    for (auto& existing : stack) {
+        if (existing.layer == tile.layer) {
+            existing = tile;
+            return true;
+        }
+    }
+    
+    stack.push_back(tile);
+    std::sort(stack.begin(), stack.end(), [](const Tile& a, const Tile& b) {
+        return a.layer < b.layer;
+    });
+    
     return true;
+}
+
+void TileMap::remove_tiles_by_id_range(int x, int y, int min_id, int max_id) {
+    if (x < 0 || x >= width || y < 0 || y >= height) {
+        return;
+    }
+    
+    auto& stack = tiles[y][x];
+    stack.erase(std::remove_if(stack.begin(), stack.end(), [min_id, max_id](const Tile& t) {
+        return t.texture_id >= min_id && t.texture_id <= max_id;
+    }), stack.end());
 }
 
 void TileMap::initialize(int w, int h, const Tile& default_tile) {
@@ -30,7 +70,10 @@ void TileMap::initialize(int w, int h, const Tile& default_tile) {
     tiles.clear();
     tiles.resize(height);
     for (int y = 0; y < height; ++y) {
-        tiles[y].resize(width, default_tile);
+        tiles[y].resize(width);
+        for (int x = 0; x < width; ++x) {
+            tiles[y][x].push_back(default_tile);
+        }
     }
 }
 
@@ -89,7 +132,125 @@ void TileRenderer::update(float delta_time) {
         // Note: zoom is not available from CameraController, keep current zoom
     }
     
-    (void)delta_time;
+    if (tile_map_ && component_registry_) {
+        for (int y = 0; y < tile_map_->height; ++y) {
+            for (int x = 0; x < tile_map_->width; ++x) {
+                tile_map_->remove_tiles_by_id_range(x, y, 5, 8);
+            }
+        }
+        const auto* wall_container = component_registry_->get_all_components<Wall>();
+        if (wall_container) {
+            for (EntityID entity : wall_container->get_entities()) {
+                if (!entity_manager_->is_valid(entity)) {
+                    continue;
+                }
+                const auto* wall = component_registry_->get_component<Wall>(entity);
+                const auto* transform = component_registry_->get_component<Transform>(entity);
+                
+                if (wall && transform && wall->wall_type == "tree") {
+                    int tile_x = static_cast<int>((transform->x - wall->width * 0.5f) / 32.0f);
+                    int tile_y = static_cast<int>((transform->y - wall->height * 0.5f) / 32.0f);
+                    int tile_width = static_cast<int>(wall->width / 32.0f);
+                    int tile_height = static_cast<int>(wall->height / 32.0f);
+
+                    for (int y = tile_y; y < tile_y + tile_height; ++y) {
+                        for (int x = tile_x; x < tile_x + tile_width; ++x) {
+                            Tile tile;
+                            tile.texture_id = 5; 
+                            tile.color = {1.0f, 1.0f, 1.0f, 1.0f};
+                            tile.layer = 2; 
+                            tile_map_->set_tile(x, y, tile);
+                        }
+                    }
+                }
+            }
+        }
+
+        const auto* door_container = component_registry_->get_all_components<Door>();
+        if (door_container) {
+            for (EntityID entity : door_container->get_entities()) {
+                if (!entity_manager_->is_valid(entity)) {
+                    continue;
+                }
+                const auto* door = component_registry_->get_component<Door>(entity);
+                const auto* transform = component_registry_->get_component<Transform>(entity);
+                
+                if (door && transform) {
+                    int tile_x = static_cast<int>((transform->x - 16.0f) / 32.0f);
+                    int tile_y = static_cast<int>((transform->y - 16.0f) / 32.0f);
+                    
+                    Tile tile;
+                    tile.texture_id = 6; 
+                    tile.layer = 2; 
+                    if (door->is_open) {
+                        tile.color = {1.0f, 1.0f, 1.0f, 0.2f}; 
+                    } else {
+                        tile.color = {1.0f, 1.0f, 1.0f, 1.0f}; 
+                    }
+                    tile_map_->set_tile(tile_x, tile_y, tile);
+                }
+            }
+        }
+
+        const auto* water_container = component_registry_->get_all_components<WaterLevel>();
+        if (water_container) {
+            for (EntityID entity : water_container->get_entities()) {
+                if (!entity_manager_->is_valid(entity)) {
+                    continue;
+                }
+                const auto* water = component_registry_->get_component<WaterLevel>(entity);
+                const auto* transform = component_registry_->get_component<Transform>(entity);
+                const auto* bbox = component_registry_->get_component<BoundingBoxComponent>(entity);
+                
+                if (water && transform) {
+                    int tile_x = static_cast<int>((transform->x - 16.0f) / 32.0f);
+                    int tile_y = static_cast<int>((transform->y - 16.0f) / 32.0f);
+                    
+                    Tile tile;
+                    tile.texture_id = 7; 
+                    tile.layer = 1; 
+                    bool is_solid_water = (bbox && bbox->is_solid);
+                    
+                    if (is_solid_water) {
+                        tile.color = {0.7f, 0.9f, 1.0f, 1.0f}; 
+                    } else if (water->target_level < 10.0f || (water->is_draining && water->current_level < 10.0f)) {
+                        tile.color = {1.0f, 1.0f, 1.0f, 0.2f};
+                    } else {
+                        tile.color = {1.0f, 1.0f, 1.0f, 0.8f};
+                    }
+                    tile_map_->set_tile(tile_x, tile_y, tile);
+                }
+            }
+        }
+
+        const auto* switch_container = component_registry_->get_all_components<EnvironmentalSwitch>();
+        if (switch_container) {
+            for (EntityID entity : switch_container->get_entities()) {
+                if (!entity_manager_->is_valid(entity)) {
+                    continue;
+                }
+                const auto* env_switch = component_registry_->get_component<EnvironmentalSwitch>(entity);
+                const auto* transform = component_registry_->get_component<Transform>(entity);
+                
+                if (env_switch && transform) {
+                    int tile_x = static_cast<int>((transform->x - 16.0f) / 32.0f);
+                    int tile_y = static_cast<int>((transform->y - 16.0f) / 32.0f);
+                    
+                    Tile tile;
+                    tile.texture_id = 8; 
+                    tile.layer = 1; 
+                    if (env_switch->is_activated) {
+                        tile.color = {0.0f, 1.0f, 0.0f, 1.0f}; 
+                    } else {
+                        tile.color = {1.0f, 1.0f, 1.0f, 1.0f}; 
+                    }
+                    tile_map_->set_tile(tile_x, tile_y, tile);
+                }
+            }
+        }
+    }
+    
+    (void)delta_time; 
 }
 
 void TileRenderer::render(SDL_Renderer* renderer) {
@@ -128,55 +289,60 @@ void TileRenderer::render(SDL_Renderer* renderer) {
     for (int layer = 0; layer <= 10; ++layer) {
         for (int y = tile_top; y <= tile_bottom; ++y) {
             for (int x = tile_left; x <= tile_right; ++x) {
-                const Tile* tile = tile_map_->get_tile(x, y);
-                if (!tile || !tile->visible || tile->layer != layer) {
+                const std::vector<Tile>* stack = tile_map_->get_tile_stack(x, y);
+                if (!stack) {
                     continue;
                 }
                 
-                float world_x = x * tile_size_;
-                float world_y = y * tile_size_;
-                
-                int screen_x, screen_y;
-                if (camera_controller_) {
-                    camera_controller_->world_to_screen(world_x, world_y, screen_x, screen_y);
-                } else {
-                    camera_.world_to_screen(world_x, world_y, screen_x, screen_y);
-                }
-                
-                float zoom = camera_controller_ ? 1.0f : camera_.zoom; 
-                int scaled_size = static_cast<int>(tile_size_ * zoom * render_scale_);
-                
-                SDL_FRect dest_rect{
-                    static_cast<float>(screen_x),
-                    static_cast<float>(screen_y),
-                    static_cast<float>(scaled_size),
-                    static_cast<float>(scaled_size)
-                };
-
-                int texture_id;
-                SDL_FColor color;
-                get_reality_visuals(*tile, current_reality, texture_id, color);
-                
-                if (texture_id > 0) {
-                    auto texture_it = textures_.find(texture_id);
-                    if (texture_it != textures_.end()) {
-                        SDL_SetTextureColorMod(texture_it->second.get(), 
-                                             static_cast<Uint8>(color.r * 255),
-                                             static_cast<Uint8>(color.g * 255),
-                                             static_cast<Uint8>(color.b * 255));
-                        SDL_SetTextureAlphaMod(texture_it->second.get(), 
-                                             static_cast<Uint8>(color.a * 255));
-                        
-                        SDL_RenderTexture(renderer, texture_it->second.get(), 
-                                        &source_rect, &dest_rect);
+                for (const auto& tile : *stack) {
+                    if (!tile.visible || tile.layer != layer) {
+                        continue;
                     }
-                } else {
-                    SDL_SetRenderDrawColorFloat(renderer, color.r, color.g, 
-                                              color.b, color.a);
-                    SDL_RenderFillRect(renderer, &dest_rect);
+                    
+                    float world_x = x * tile_size_;
+                    float world_y = y * tile_size_;
+                    
+                    int screen_x, screen_y;
+                    if (camera_controller_) {
+                        camera_controller_->world_to_screen(world_x, world_y, screen_x, screen_y);
+                    } else {
+                        camera_.world_to_screen(world_x, world_y, screen_x, screen_y);
+                    }
+                    
+                    float zoom = camera_controller_ ? 1.0f : camera_.zoom; 
+                    int scaled_size = static_cast<int>(tile_size_ * zoom * render_scale_);
+                    
+                    SDL_FRect dest_rect{
+                        static_cast<float>(screen_x),
+                        static_cast<float>(screen_y),
+                        static_cast<float>(scaled_size),
+                        static_cast<float>(scaled_size)
+                    };
+                    
+                    int texture_id;
+                    SDL_FColor color;
+                    get_reality_visuals(tile, current_reality, texture_id, color);
+                    
+                    if (texture_id > 0) {
+                        auto texture_it = textures_.find(texture_id);
+                        if (texture_it != textures_.end()) {
+                            SDL_SetTextureColorMod(texture_it->second.get(), 
+                                                 static_cast<Uint8>(color.r * 255),
+                                                 static_cast<Uint8>(color.g * 255),
+                                                 static_cast<Uint8>(color.b * 255));
+                            SDL_SetTextureAlphaMod(texture_it->second.get(), 
+                                                 static_cast<Uint8>(color.a * 255));
+                            
+                            SDL_RenderTexture(renderer, texture_it->second.get(), 
+                                            &tile.source_rect, &dest_rect);
+                        }
+                    } else {
+                        SDL_SetRenderDrawColorFloat(renderer, color.r, color.g, color.b, color.a);
+                        SDL_RenderFillRect(renderer, &dest_rect);
+                    }
+                    
+                    visible_tiles_rendered_++;
                 }
-                
-                visible_tiles_rendered_++;
             }
         }
     }
@@ -229,17 +395,9 @@ bool TileRenderer::load_texture(int texture_id, const std::string& filename, SDL
         return false;
     }
     
-    SDL_Surface* surface = SDL_LoadBMP(filename.c_str());
-    if (!surface) {
-        std::cerr << "Failed to load texture: " << filename << " - " << SDL_GetError() << std::endl;
-        return false;
-    }
-    
-    SDL_Texture* texture = SDL_CreateTextureFromSurface(renderer, surface);
-    SDL_DestroySurface(surface);
-    
+    SDL_Texture* texture = IMG_LoadTexture(renderer, filename.c_str());
     if (!texture) {
-        std::cerr << "Failed to create texture from surface: " << SDL_GetError() << std::endl;
+        std::cerr << "Failed to load texture: " << filename << " - " << SDL_GetError() << std::endl;
         return false;
     }
     

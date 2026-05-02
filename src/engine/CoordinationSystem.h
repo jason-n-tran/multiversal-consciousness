@@ -65,7 +65,7 @@ struct TimingSensitiveMechanic {
 
 class CoordinationSystem : public ISystem {
 private:
-    std::unique_ptr<RealityManager> reality_manager_;       
+    RealityManager* reality_manager_{nullptr};    
     
     std::vector<AgentAction> recent_actions_;                
     std::vector<AgentEffect> pending_effects_;           
@@ -78,7 +78,7 @@ private:
     std::unordered_map<std::string, std::function<void(const AgentAction&)>> effect_evaluators_;
     
 public:
-    explicit CoordinationSystem(std::unique_ptr<RealityManager> reality_manager);
+    explicit CoordinationSystem(RealityManager* reality_manager);
     
     ~CoordinationSystem() override = default;
     

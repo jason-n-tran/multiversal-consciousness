@@ -7,7 +7,32 @@
 #include "CameraController.h"
 #include "RealityManager.h"
 #include <SDL3/SDL.h>
+#include <SDL3_image/SDL_image.h>
 #include <memory>
+#include <unordered_map>
+#include <string>
+
+enum class AnimationState {
+    Idle,
+    Run,
+    Jump,
+    Fall
+};
+
+struct SpriteAnimation {
+    SDL_Texture* texture{nullptr};
+    int frame_count{0};
+    int frame_width{0};
+    int frame_height{0};
+    float frame_duration{0.1f};  
+};
+
+struct AgentSpriteData {
+    SpriteAnimation idle;
+    SpriteAnimation run;
+    int sprite_width{0};
+    int sprite_height{0};
+};
 
 struct AgentVisualConfig {
     SDL_FColor possessed_outline_color{0.0f, 1.0f, 0.0f, 1.0f};  
@@ -20,7 +45,7 @@ struct AgentVisualConfig {
     
     SDL_FColor number_text_color{1.0f, 1.0f, 1.0f, 1.0f};      
     SDL_FColor number_background_color{0.0f, 0.0f, 0.0f, 0.7f};  
-    float number_offset_y{-20.0f};                               
+    float number_offset_y{-40.0f};                               
     
     float glow_pulse_speed{2.0f};                            
     float glow_pulse_min{0.2f};                                 
@@ -33,7 +58,13 @@ private:
     CameraController* camera_controller_{nullptr};    
     RealityManager* reality_manager_{nullptr};       
     float animation_time_{0.0f};                             
+    SDL_Renderer* sdl_renderer_{nullptr};                        
     
+    std::unordered_map<uint8_t, AgentSpriteData> agent_sprites_;
+    
+    std::unordered_map<EntityID, AnimationState> entity_animation_states_;
+    std::unordered_map<EntityID, float> entity_animation_times_;
+    std::unordered_map<EntityID, bool> entity_facing_right_;  
     void render_agent_feedback(SDL_Renderer* renderer, EntityID entity, 
                               const Transform& transform, const Agent& agent, 
                               const Renderable* renderable);
@@ -42,7 +73,17 @@ private:
                                     const Transform& transform, const Agent& agent,
                                     const Renderable& renderable, Reality current_reality);
     
+    void render_simple_agent(SDL_Renderer* renderer, EntityID entity,
+                            const Transform& transform, const Agent& agent,
+                            const Renderable& renderable);
+    
     SDL_Rect get_animation_frame(const Agent& agent, Reality current_reality, float animation_time) const;
+    
+    bool load_agent_sprites(uint8_t agent_number, const std::string& base_path);
+
+    AnimationState get_animation_state(EntityID entity, const PhysicsComponent* physics) const;
+
+    void update_entity_animation(EntityID entity, AnimationState new_state, float delta_time);
 
     void render_outline(SDL_Renderer* renderer, float x, float y, 
                        float width, float height, 
@@ -68,6 +109,8 @@ public:
     AgentRenderer& operator=(AgentRenderer&&) noexcept = default;
     
     void initialize(EntityManager& entity_manager, ComponentRegistry& component_registry) override;
+    
+    void initialize_sprites(SDL_Renderer* renderer);
     
     void update(float delta_time) override;
     

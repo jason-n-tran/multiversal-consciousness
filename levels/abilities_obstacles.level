@@ -1,0 +1,112 @@
+# Comprehensive Abilities & Obstacles Demonstration Level
+# Showcases ALL implemented abilities, obstacles, and interactive elements
+# Demonstrates dual reality mechanics, quantum nodes, environmental elements, and agent coordination
+# Coordinate system: Each unit = 1 tile (32x32 pixels), origin at top-left (0,0)
+
+[info]
+name=Complete Abilities & Obstacles Demo
+description=Comprehensive demonstration of all abilities (Axe, Keycard, DoubleJump, Dash, WaterWalk, PhaseShift), interactive obstacles (Trees, Doors, Chasms), environmental elements (Water, Switches), and dual reality quantum mechanics
+
+[agents]
+# Format: type,number,x,y,speed (coordinates in tiles)
+# Multiple agents to demonstrate coordination and different abilities
+TestAgent,1,2,18,140
+TestAgent,2,4,18,150
+TestAgent,3,6,18,120
+
+[quantum_nodes]
+# Format: x,y,reality_a_item,reality_b_item,radius (coordinates in tiles, radius in pixels)
+# Quantum nodes demonstrating all ability types across both realities
+# Node 1: Axe vs Keycard - demonstrates tool-based abilities
+8,17,axe,keycard,45
+# Node 2: DoubleJump vs Dash - demonstrates movement abilities
+15,17,double_jump,dash,45
+# Node 3: WaterWalk vs PhaseShift - demonstrates environmental abilities
+22,17,water_walk,phase_shift,45
+
+[environment]
+# Format: type,x,y,property1=value1,property2=value2 (coordinates in tiles, dimensions in tiles)
+
+# === STARTING AREA ===
+# Main ground platform where agents start (24 tiles wide, 1 tile high)
+wall,2,19,width=24,height=1,solid=true
+# Boundary walls to contain the level
+wall,0,10,width=1,height=15,solid=true
+wall,26,10,width=1,height=15,solid=true
+
+# === AXE DEMONSTRATION SECTION ===
+# Tree obstacles requiring Axe ability (Reality A)
+# Tree 1 - blocking path to next section
+wall,10,16,width=1,height=3,solid=true,type=tree
+# Tree 2 - alternative path
+wall,12,16,width=1,height=3,solid=true,type=tree
+
+# === KEYCARD DEMONSTRATION SECTION ===
+# Locked doors requiring Keycard ability (Reality B)
+# Door 1 - main passage
+door,14,18,locked=true,required_key=keycard
+# Door 2 - alternative route
+door,16,18,locked=true,required_key=keycard
+
+# === DOUBLE JUMP DEMONSTRATION SECTION ===
+# High walls and gaps requiring DoubleJump ability
+# High wall obstacle (2 tiles high)
+wall,18,17,width=1,height=2,solid=true
+# Platform after high wall
+wall,20,18,width=2,height=1,solid=true
+
+# === WATER WALK DEMONSTRATION SECTION ===
+# Water obstacles requiring WaterWalk ability
+# Water section 1 - shallow water
+water,22,19,level=32
+water,23,19,level=32
+# Water section 2 - deeper water
+water,24,19,level=24
+
+# === PHASE SHIFT DEMONSTRATION SECTION ===
+# Solid barriers that can be passed through with PhaseShift
+# Barrier 1 - thin wall that can be phased through
+wall,25,16,width=1,height=3,solid=true,type=phaseable
+
+# === TRIGGER ZONES FOR TESTING ===
+# Success zones to test completion conditions
+trigger,25,18,width=1,height=1,type=success_zone
+# Checkpoint triggers for progress tracking
+trigger,13,17,width=1,height=1,type=checkpoint
+trigger,17,17,width=1,height=1,type=checkpoint
+trigger,21,17,width=1,height=1,type=checkpoint
+
+# === ENVIRONMENTAL SWITCHES DEMONSTRATION ===
+# Switches that control doors and water levels across realities
+# Switch 1 - controls door in Reality A
+switch,13,17,target_type=door,target_id=door_1
+# Switch 2 - controls water drainage in Reality B
+switch,21,17,target_type=water,target_id=water_section_1
+
+[conditions]
+# Format: type,target,value
+# Comprehensive verification conditions testing all systems
+
+# Position-based conditions
+agent_position,1,x>800
+agent_position,2,x>750
+agent_position,3,x>700
+
+# Ability acquisition conditions (testing quantum node interactions)
+agent_has_ability,1,axe
+agent_has_ability,2,keycard
+agent_has_ability,3,water_walk
+
+# Reality state conditions
+reality_state,current,A
+reality_state,current,B
+
+# Environmental state conditions
+door_state,door_1,unlocked
+switch_state,switch_1,activated
+
+# Trigger activation conditions
+trigger_activated,checkpoint_1,true
+trigger_activated,checkpoint_2,true
+trigger_activated,checkpoint_3,true
+trigger_activated,success_zone,true
