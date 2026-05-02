@@ -8,8 +8,8 @@ description=A simple level demonstrating tile-based coordinates - much easier to
 
 [agents]
 # Format: type,number,x,y,speed (coordinates in tiles)
-# Agent starts at tile position (2, 10) = pixel position (80, 336)
-TestAgent,1,2,10,140
+# Agent starts at tile position (5, 10) = pixel position (80, 336)
+TestAgent,1,5,10,140
 
 [quantum_nodes]
 # Format: x,y,reality_a_item,reality_b_item,radius (coordinates in tiles, radius in pixels)
@@ -19,14 +19,13 @@ TestAgent,1,2,10,140
 [environment]
 # Format: type,x,y,property1=value1,property2=value2 (coordinates in tiles, dimensions in tiles)
 # Ground platform: 10 tiles wide, 1 tile high, starting at tile (1, 11)
-wall,5.5,11.5,width=10,height=1,solid=true
-# Small platform: 3 tiles wide, 1 tile high, at tile (8, 9)
-wall,8.5,9.5,width=3,height=1,solid=true
+wall,4,11,width=13,height=1,solid=true,type=ground
 # Vertical wall: 1 tile wide, 3 tiles high, at tile (12, 8)
-wall,12.5,9.5,width=1,height=3,solid=true
+wall,12,9,width=1,height=2,solid=true
 # Success zone: 2 tiles wide, 1 tile high, at tile (15, 10)
-trigger,16,11,width=2,height=1,type=success_zone
+trigger,15,10,width=2,height=1,type=success_zone
 
 [conditions]
 # Format: type,target,value
 agent_position,1,x>500
+agent_has_ability,1,double_jump
