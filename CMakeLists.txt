@@ -63,7 +63,6 @@ set(SOURCES
     src/engine/CoordinationSystem.cpp
     src/engine/PuzzleSystem.cpp
     src/engine/LevelLoader.cpp
-    src/engine/PuzzleValidator.cpp
     src/engine/AbilitySystem.cpp
     src/engine/PhysicsSystem.cpp
     src/engine/QuantumLoadoutSystem.cpp
@@ -93,6 +92,51 @@ if(EMSCRIPTEN)
     )
     set_target_properties(${PROJECT_NAME} PROPERTIES SUFFIX ".html")
 endif()
+if(NOT EMSCRIPTEN)
+enable_testing()
+
+include(FetchContent)
+FetchContent_Declare(
+    Catch2
+    GIT_REPOSITORY https://github.com/catchorg/Catch2.git
+    GIT_TAG v3.4.0
+)
+FetchContent_MakeAvailable(Catch2)
+
+set(TEST_SOURCES
+    tests/test_main.cpp
+    src/main.cpp
+    src/engine/GameEngine.cpp
+    src/engine/SDLDeleter.cpp
+    src/engine/EntityManager.cpp
+    src/engine/System.cpp
+    src/engine/TileRenderer.cpp
+    src/engine/RealityManager.cpp
+    src/engine/RealitySystem.cpp
+    src/engine/PossessionSystem.cpp
+    src/engine/CameraController.cpp
+    src/engine/AgentRenderer.cpp
+    src/engine/QuantumSystem.cpp
+    src/engine/QuantumNodeRenderer.cpp
+    src/engine/InputManager.cpp
+    src/engine/MovementSystem.cpp
+    src/engine/CoordinationSystem.cpp
+    src/engine/PuzzleSystem.cpp
+    src/engine/LevelLoader.cpp
+    src/engine/AbilitySystem.cpp
+    src/engine/PhysicsSystem.cpp
+    src/engine/QuantumLoadoutSystem.cpp
+    src/engine/InteractiveObstacles.cpp
+    src/engine/InteractiveObstacleSystem.cpp
+    src/engine/HUDSystem.cpp
+    src/engine/VerificationSystem.cpp
+    src/engine/MenuSystem.cpp
+    src/engine/BackgroundSystem.cpp
+)
+
+add_executable(tests ${TEST_SOURCES})
+target_link_libraries(tests Catch2::Catch2WithMain SDL3::SDL3 SDL3_ttf::SDL3_ttf SDL3_image::SDL3_image)
+target_include_directories(tests PRIVATE src)
 
 # Copy levels and assets directories to build directory for runtime access
 add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
@@ -102,3 +146,5 @@ add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
     ${CMAKE_SOURCE_DIR}/assets ${CMAKE_BINARY_DIR}/assets
     COMMENT "Copying levels and assets directories to build directory"
 )
+
+endif() # NOT EMSCRIPTEN

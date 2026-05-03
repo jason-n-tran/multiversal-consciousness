@@ -122,7 +122,6 @@ void GameEngine::single_step(float delta_time) {
         std::cout << "Game " << (is_paused_ ? "PAUSED" : "UNPAUSED") << std::endl;
     }
     
-    plugin_manager_->update(delta_time);
     system_manager_->update(delta_time, is_paused_);
     
     SDL_SetRenderDrawColor(renderer_.get(), 25, 25, 50, 255);

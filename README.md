@@ -247,8 +247,6 @@ trigger_activated,success_zone,true
 - [x] Interactive obstacle system (trees, doors, chasms, switches)
 - [x] Tile-based level loader with 8 playable levels
 - [x] Comprehensive test suite (20 test files via Catch2)
-- [x] Plugin system with dynamic library loading
-- [ ] PuzzleValidator integration with LevelLoader condition checking
 - [ ] CI/CD pipeline (GitHub Actions for build + test)
 - [ ] Audio system (sound effects and music)
 - [ ] Level editor tooling
