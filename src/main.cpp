@@ -279,7 +279,7 @@ int main() {
 
 void configure_level_visuals(TileRenderer* tile_renderer_ptr, SDL_Renderer* renderer) {
     tile_renderer_ptr->create_solid_texture(1, {0.4f, 0.4f, 0.4f, 1.0f}, 32, 32, renderer); 
-    tile_renderer_ptr->create_solid_textur
+    tile_renderer_ptr->create_solid_texture(2, {0.1f, 0.1f, 0.1f, 1.0f}, 32, 32, renderer);
     tile_renderer_ptr->create_solid_texture(3, {0.2f, 0.8f, 0.2f, 1.0f}, 32, 32, renderer); 
     tile_renderer_ptr->create_solid_texture(4, {0.8f, 0.2f, 0.8f, 1.0f}, 32, 32, renderer); 
     tile_renderer_ptr->create_solid_texture(5, {0.6f, 0.3f, 0.1f, 1.0f}, 32, 32, renderer); 

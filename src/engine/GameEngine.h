@@ -15,6 +15,8 @@ struct EngineConfig {
     int window_height = 720;
     bool fullscreen = false;
     bool vsync = true;
+    int tile_size = 32;
+    float render_scale = 1.0f;
 };
 
 
@@ -49,8 +51,16 @@ public:
     
     void run();
     
+    void single_step(float delta_time);
+    
     void shutdown();
     
+    void set_paused(bool paused) { is_paused_ = paused; }
+    
+    void toggle_pause() { is_paused_ = !is_paused_; }
+    
+    bool is_paused() const { return is_paused_; }
+
     bool is_running() const { return is_running_; }
 
     bool is_initialized() const { return is_initialized_; }

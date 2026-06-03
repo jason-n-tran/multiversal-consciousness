@@ -8,9 +8,9 @@
 #include <vector>
 #include "System.h"
 #include "SDLDeleter.h"
-#include "ConfigLoader.h"
 #include "RealityManager.h"
 #include "CameraController.h"
+#include "GameEngine.h"
 
 struct Tile {
     int texture_id = 0;

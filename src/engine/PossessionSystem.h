@@ -59,6 +59,8 @@ public:
     
     const std::unordered_map<uint8_t, EntityID>& get_agent_mappings() const;
     
+    void snap_camera_to_possessed();
+    
     CameraController& get_camera_controller();
     
     const CameraController& get_camera_controller() const;

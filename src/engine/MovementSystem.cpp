@@ -76,8 +76,6 @@ void MovementSystem::apply_movement(EntityID entity, float delta_time) {
         if (move_y > 0.0f) {
             physics->velocity_y = move_y * movement_force;
         }
-        
-        }
     } else {
         float movement_distance = agent->movement_speed * delta_time;
         transform->x += move_x * movement_distance;

@@ -8,6 +8,7 @@
 #include "QuantumLoadoutSystem.h"
 #include "RealityManager.h"
 #include <SDL3/SDL.h>
+#include <SDL3_ttf/SDL_ttf.h>
 #include <memory>
 #include <string>
 #include <unordered_map>
@@ -75,9 +76,7 @@ private:
     float render_text(SDL_Renderer* renderer, const std::string& text, TTF_Font* font,
                      float x, float y, const SDL_FColor& color);
     
-    float render_text_with_background(SDL_Renderer* renderer, const std::string& text,
-                                     float x, float y, float font_size,
-                                     const SDL_FColor& text_color, const SDL_FColor& bg_color TTF_Font* font,
+    float render_text_with_background(SDL_Renderer* renderer, const std::string& text, TTF_Font* font,
                                      float x, float y, const SDL_FColor& text_color, const SDL_FColor& bg_color);
 
     void render_simple_character(SDL_Renderer* renderer, char c, float x, float y, 
