@@ -2,6 +2,7 @@
 
 # Multiversal Consciousness Game Engine
 
+[![Play Now](https://img.shields.io/badge/Play_Now-Live-0078D4?logo=google-chrome&logoColor=white&style=for-the-badge)](https://multiversalconsciousness.pages.dev)
 ![C++23](https://img.shields.io/badge/C%2B%2B-23-blue?style=for-the-badge&logo=cplusplus&logoColor=white)
 ![SDL3](https://img.shields.io/badge/SDL-3-green?style=for-the-badge&logo=sdl&logoColor=white)
 ![CMake](https://img.shields.io/badge/CMake-3.20+-orange?style=for-the-badge&logo=cmake&logoColor=white)
@@ -10,7 +11,7 @@
 A modern, RAII-driven 2D puzzle-platformer engine where players navigate agents across **two parallel realities**, switching between them to solve physics-based puzzles. Built from the ground up with a custom Entity-Component System, it gives developers a clean, extensible foundation for building dual-world game mechanics without fighting the framework.
 
 <!-- Screenshot: A side-by-side or overlay view of Reality A and Reality B showing different obstacle layouts, an agent being possessed, and the HUD displaying the active reality and abilities. -->
-![Project Screenshot](path/to/screenshot.png)
+![Project Screenshot](Screenshot.png)
 
 ---
 
